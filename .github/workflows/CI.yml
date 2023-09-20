@@ -42,15 +42,10 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
-      - run: python -m venv ./venv
-        name: Setup virtual environment
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          sccache: 'true'
-          command: develop
-      - run: pip install pytest
-        name: Install pytest
+      - run: pip install maturin pytest
+        name: Setup dependencies
+      - run: maturin develop
+        name: Build dependency
       - run: pytest tests/
         name: Run tests
 
