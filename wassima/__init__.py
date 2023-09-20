@@ -2,8 +2,9 @@
 the Wassima library is a simple wrapper around the crate rustls-native-certs.
 It aims to provide a pythonic way to retrieve root CAs from your system without any difficulties or hazmat.
 """
+from __future__ import annotations
+
 import ssl
-import typing
 from functools import lru_cache
 from ssl import DER_cert_to_PEM_cert
 
@@ -11,7 +12,7 @@ from .wassima import root_der_certificates
 
 
 @lru_cache()
-def root_pem_certificates() -> typing.List[str]:
+def root_pem_certificates() -> list[str]:
     """
     Retrieve a list of root certificate from your operating system trust store.
     They will be PEM encoded.
@@ -19,9 +20,7 @@ def root_pem_certificates() -> typing.List[str]:
     pem_certs = []
 
     for bin_cert in root_der_certificates():
-        pem_certs.append(
-            DER_cert_to_PEM_cert(bin_cert)
-        )
+        pem_certs.append(DER_cert_to_PEM_cert(bin_cert))
 
     return pem_certs
 
@@ -31,7 +30,7 @@ def generate_ca_bundle() -> str:
     Generate an aggregated CA bundle that originate from your system trust store.
     Simply put, concatenated root PEM certificate.
     """
-    return '\n\n'.join(root_pem_certificates())
+    return "\n\n".join(root_pem_certificates())
 
 
 def create_default_ssl_context() -> ssl.SSLContext:

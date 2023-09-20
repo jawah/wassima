@@ -1,5 +1,6 @@
-import typing
+from __future__ import annotations
 
+import typing
 
 def root_der_certificates() -> typing.List[bytes]:
     """

@@ -74,4 +74,3 @@ bundle = wassima.generate_ca_bundle()
 # ... It contains a string with all of your root CAs!
 # It is not a path but the file content itself.
 ```
-

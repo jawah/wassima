@@ -1,7 +1,11 @@
-import pytest
-from wassima import create_default_ssl_context
+from __future__ import annotations
+
+from socket import AF_INET, SOCK_STREAM, socket
 from ssl import SSLError
-from socket import socket, AF_INET, SOCK_STREAM
+
+import pytest
+
+from wassima import create_default_ssl_context
 
 
 @pytest.mark.parametrize(
@@ -12,14 +16,21 @@ from socket import socket, AF_INET, SOCK_STREAM
         ("self-signed.badssl.com", 443, True, "self-signed certificate"),
         ("untrusted-root.badssl.com", 443, True, "self-signed certificate"),
         ("tls-v1-2.badssl.com", 1012, False, None),
-        ("sha1-intermediate.badssl.com", 443, True, "unable to get local issuer certificate"),
+        (
+            "sha1-intermediate.badssl.com",
+            443,
+            True,
+            "unable to get local issuer certificate",
+        ),
         ("one.one.one.one", 443, False, None),
         ("edellroot.badssl.com", 443, True, "unable to get local issuer certificate"),
         ("developer.mozilla.org", 443, False, None),
         ("letsencrypt.org", 443, False, None),
-    ]
+    ],
 )
-def test_ctx_use_system_store(host: str, port: int, expect_failure: bool, failure_label: str) -> None:
+def test_ctx_use_system_store(
+    host: str, port: int, expect_failure: bool, failure_label: str
+) -> None:
     ctx = create_default_ssl_context()
 
     s = socket(AF_INET, SOCK_STREAM)
