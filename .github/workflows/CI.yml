@@ -54,7 +54,7 @@ jobs:
         name: Install built package
       - run: |
           rm -fR wassima
-          pytest wassima/tests/
+          pytest tests/
         name: Run tests
 
   linux:
