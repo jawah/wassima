@@ -11,3 +11,6 @@ crate-type = ["cdylib"]
 [dependencies]
 pyo3 = { version = "0.19.2", features = ["abi3-py37"] }
 rustls-native-certs = "0.6.3"
+
+[package.metadata.maturin]
+python-source = "wassima"
