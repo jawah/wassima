@@ -8,7 +8,7 @@ import ssl
 from functools import lru_cache
 from ssl import DER_cert_to_PEM_cert
 
-from .rustls import root_der_certificates
+from .wassima import root_der_certificates
 
 
 @lru_cache()

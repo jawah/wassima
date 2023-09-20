@@ -17,7 +17,7 @@ fn root_der_certificates(py: Python) -> PyResult<Vec<&PyBytes>> {
 }
 
 #[pymodule]
-fn rustls(_py: Python, m: &PyModule) -> PyResult<()> {
+fn wassima(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(root_der_certificates, m)?)?;
     Ok(())
 }
