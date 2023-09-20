@@ -53,7 +53,7 @@ jobs:
       - run: pip install dist/*.whl
         name: Install built package
       - run: |
-          cd ..
+          rm wassima
           pytest wassima/tests/
         name: Run tests
 
