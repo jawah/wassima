@@ -45,9 +45,7 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
-          args: --interpreter ${{ matrix.python_version }}
           sccache: 'true'
-          manylinux: auto
           command: develop
       - run: pip install pytest
         name: Install pytest
