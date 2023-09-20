@@ -52,7 +52,9 @@ jobs:
           manylinux: auto
       - run: pip install dist/*.whl
         name: Install built package
-      - run: pytest tests/
+      - run: |
+          cd ..
+          pytest wassima/tests/
         name: Run tests
 
   linux:
