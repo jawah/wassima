@@ -6,6 +6,7 @@ build-backend = "maturin"
 name = "wassima"
 description = "Access your OS root certificates with the atmost ease"
 readme = "README.md"
+license = {file = "LICENSE"}
 keywords = ["truststore", "ssl", "tls", "root ca", "ca", "trust", "https", "certificate"]
 authors = [
   {name = "Ahmed R. TAHRI", email="ahmed.tahri@cloudnursery.dev"},
@@ -26,6 +27,12 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3 :: Only",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries",
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 5 - Production/Stable"
 ]
 
 [project.urls]

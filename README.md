@@ -14,7 +14,7 @@
 </p>
 
 This project offers you a great alternative to **certifi**. It is a simple yet efficient wrapper
-around **rustls-native-certs**.
+around MIT licensed **rustls-native-certs**.
 
 This project allows you to access your original operating system trust store, thus
 helping you to verify the remote peer certificates.
