@@ -45,8 +45,16 @@ def create_default_ssl_context() -> ssl.SSLContext:
     ctx.load_verify_locations(cadata=generate_ca_bundle())
     ctx.minimum_version = ssl.TLSVersion.TLSv1_2
     ctx.set_ciphers("DEFAULT")
-    ctx.hostname_checks_common_name = False
-    ctx.check_hostname = True
+
+    try:
+        ctx.hostname_checks_common_name = False
+    except AttributeError:
+        pass
+
+    try:
+        ctx.check_hostname = True
+    except AttributeError:
+        pass
 
     return ctx
 
