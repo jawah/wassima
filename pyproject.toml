@@ -36,6 +36,7 @@ classifiers = [
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
+module-name = "wassima._rustls"
 
 [tool.pytest.ini_options]
 log_level = "DEBUG"

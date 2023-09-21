@@ -1,6 +1,6 @@
 <h1 align="center">Wassima 🔒</h1>
 
-<p style="text-align: center">
+<p align="center">
 <small>I named this library after my wife, whom I trust the most. ❤️</small>
 </p>
 

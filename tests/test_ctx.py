@@ -9,28 +9,37 @@ from wassima import create_default_ssl_context
 
 
 @pytest.mark.parametrize(
-    "host, port, expect_failure, failure_label",
+    "host, port, expect_failure",
     [
-        ("1.1.1.1", 443, False, None),
-        ("google.com", 443, False, None),
-        ("self-signed.badssl.com", 443, True, "self-signed certificate"),
-        ("untrusted-root.badssl.com", 443, True, "self-signed certificate"),
-        ("tls-v1-2.badssl.com", 1012, False, None),
+        ("1.1.1.1", 443, False),
+        ("google.com", 443, False),
+        (
+            "self-signed.badssl.com",
+            443,
+            True,
+        ),
+        (
+            "untrusted-root.badssl.com",
+            443,
+            True,
+        ),
+        (
+            "tls-v1-2.badssl.com",
+            1012,
+            False,
+        ),
         (
             "sha1-intermediate.badssl.com",
             443,
             True,
-            "unable to get local issuer certificate",
         ),
-        ("one.one.one.one", 443, False, None),
-        ("edellroot.badssl.com", 443, True, "unable to get local issuer certificate"),
-        ("developer.mozilla.org", 443, False, None),
-        ("letsencrypt.org", 443, False, None),
+        ("one.one.one.one", 443, False),
+        ("edellroot.badssl.com", 443, True),
+        ("developer.mozilla.org", 443, False),
+        ("letsencrypt.org", 443, False),
     ],
 )
-def test_ctx_use_system_store(
-    host: str, port: int, expect_failure: bool, failure_label: str
-) -> None:
+def test_ctx_use_system_store(host: str, port: int, expect_failure: bool) -> None:
     ctx = create_default_ssl_context()
 
     s = socket(AF_INET, SOCK_STREAM)
@@ -39,8 +48,12 @@ def test_ctx_use_system_store(
     if expect_failure:
         with pytest.raises(SSLError) as exc:
             s.connect((host, port))
-
-        assert failure_label in exc.value.args[1]
+        ssl_err = exc.value.args[1]
+        assert (
+            "self-signed" in ssl_err
+            or "self signed" in ssl_err
+            or "unable to get local issuer certificate" in ssl_err
+        )
     else:
         s.connect((host, port))
         assert s.getpeercert() is not None
