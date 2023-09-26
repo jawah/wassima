@@ -1,0 +1,87 @@
+[build-system]
+requires = ["hatchling>=1.6.0,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "wassima"
+description = "Access your OS root certificates with the atmost ease"
+readme = "README.md"
+license-files = { paths = ["LICENSE"] }
+license = "MIT"
+keywords = ["truststore", "ssl", "tls", "root ca", "ca", "trust", "https", "certificate"]
+authors = [
+  {name = "Ahmed R. TAHRI", email="ahmed.tahri@cloudnursery.dev"},
+]
+maintainers = [
+  {name = "Ahmed R. TAHRI", email="ahmed.tahri@cloudnursery.dev"},
+]
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries",
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 5 - Production/Stable"
+]
+dynamic = ["version"]
+
+[tool.hatch.version]
+path = "wassima/_version.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/wassima",
+    "/tests",
+    "/requirements-dev.txt",
+    "/CHANGELOG.md",
+    "/README.md",
+    "/LICENSE",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "wassima/",
+]
+
+[project.urls]
+"Changelog" = "https://github.com/jawah/wassima/blob/main/CHANGELOG.md"
+"Documentation" = "https://wassima.readthedocs.io"
+"Code" = "https://github.com/jawah/wassima"
+"Issue tracker" = "https://github.com/jawah/wassima/issues"
+
+[tool.pytest.ini_options]
+log_level = "DEBUG"
+
+[tool.isort]
+profile = "black"
+add_imports = "from __future__ import annotations"
+
+[tool.mypy]
+mypy_path = "wassima"
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+no_implicit_reexport = true
+show_error_codes = true
+strict_equality = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
