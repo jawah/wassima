@@ -74,3 +74,14 @@ bundle = wassima.generate_ca_bundle()
 # ... It contains a string with all of your root CAs!
 # It is not a path but the file content itself.
 ```
+
+*C) Register your own CA in addition to the system's*
+
+```python
+import wassima
+
+wassima.register_ca(open("./myrootca.pem", "r").read())
+bundle = wassima.generate_ca_bundle()
+# ... It contains a string with all of your root CAs, PLUS your own 'myrootca.pem'.
+# It is not a path but the file content itself.
+```
