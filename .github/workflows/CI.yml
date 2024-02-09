@@ -34,7 +34,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, ]  # windows-latest
+        os: [ubuntu-latest, macos-latest, windows-latest ]  # windows-latest
         python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10']
     runs-on: ${{ matrix.os }}
     steps:
@@ -44,17 +44,29 @@ jobs:
           python-version: ${{ matrix.python_version }}
       - name: Setup dependencies
         run: pip install --upgrade pip pytest
-      - name: Build wheels
+      - name: Build wheels (Unix, Linux)
+        if: matrix.os != 'windows-latest'
         uses: PyO3/maturin-action@v1
         with:
           args: --release --out dist --interpreter ${{ matrix.python_version }}
           sccache: 'true'
           manylinux: auto
-      - run: pip install dist/*.whl
+      - name: Build wheels (NT)
+        if: matrix.os == 'windows-latest'
+        uses: PyO3/maturin-action@v1
+        with:
+          args: --release --out dist
+          sccache: 'true'
+          target: x64
+      - run: pip install --find-links=./dist wassima
         name: Install built package
-      - run: |
-          rm -fR wassima
-          pytest tests/
+      - name: Ensure test target (NT)
+        if: matrix.os == 'windows-latest'
+        run: Remove-Item -Path wassima -Force -Recurse
+      - name: Ensure test target (Linux, Unix)
+        if: matrix.os != 'windows-latest'
+        run: rm -fR wassima
+      - run: pytest tests/
         name: Run tests
 
   linux:
