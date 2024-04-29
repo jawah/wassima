@@ -306,7 +306,7 @@ checksum = "c7de7d73e1754487cb58364ee906a499937a0dfabd86bcb980fa99ec8c8fa2ce"
 
 [[package]]
 name = "wassima"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "pyo3",
  "rustls-native-certs",

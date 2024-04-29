@@ -4,10 +4,11 @@ It aims to provide a pythonic way to retrieve root CAs from your system without 
 """
 from __future__ import annotations
 
+import contextlib
+import os
 import ssl
+import typing
 from functools import lru_cache
-from os import environ
-from ssl import DER_cert_to_PEM_cert
 from threading import RLock
 
 from ._version import VERSION, __version__
@@ -22,30 +23,85 @@ _MANUALLY_REGISTERED_CA: list[bytes] = []
 #: Lock for shared register-ca
 _USER_APPEND_CA_LOCK = RLock()
 
+
+def _split_certifi_bundle(data: bytes) -> list[str]:
+    line_ending = b"\n" if b"-----\r\n" not in data else b"\r\n"
+    boundary = b"-----END CERTIFICATE-----" + line_ending
+
+    certificates = []
+
+    for chunk in data.split(boundary):
+        if chunk:
+            start_marker = chunk.find(b"-----BEGIN CERTIFICATE-----" + line_ending)
+            if start_marker == -1:
+                break
+            pem_reconstructed = b"".join([chunk[start_marker:], boundary]).decode(
+                "ascii"
+            )
+            certificates.append(pem_reconstructed)
+
+    return certificates
+
+
+@contextlib.contextmanager
+def _shelve_environment(*keys: str) -> typing.Generator[None, None, None]:
+    ctx = {}
+
+    for key in keys:
+        try:
+            ctx[key] = os.environ.pop(key)
+        except KeyError:
+            ...
+
+    try:
+        yield
+    finally:
+        for key in ctx:
+            os.environ[key] = ctx[key]
+
+
+def _certifi_fallback() -> list[bytes]:
+    import certifi  # type: ignore
+
+    certs: list[bytes] = []
+
+    try:
+        with open(certifi.where(), "rb") as fp:
+            for pem_cert in _split_certifi_bundle(fp.read()):
+                certs.append(ssl.PEM_cert_to_DER_cert(pem_cert))
+    except (OSError, PermissionError) as e:
+        warnings.warn(
+            "Unable to fallback on Certifi due to an error trying to read the vendored CA bundle. "
+            f"{str(e)}"
+        )
+        return certs
+
+    return certs
+
+
 try:
     from ._rustls import root_der_certificates as _root_der_certificates
 
     @lru_cache()
     def root_der_certificates() -> list[bytes]:
-        try:
-            bck = environ.pop("SSL_CERT_FILE")
-        except KeyError:
-            bck = None
-
-        try:
+        with _shelve_environment("SSL_CERT_FILE", "SSL_CERT_DIR"):
             with _USER_APPEND_CA_LOCK:
-                return _root_der_certificates() + _MANUALLY_REGISTERED_CA
-        finally:
-            if bck is not None:
-                environ["SSL_CERT_FILE"] = bck
+                try:
+                    return _root_der_certificates() + _MANUALLY_REGISTERED_CA
+                except RuntimeError:
+                    try:
+                        fallback_certificates = _certifi_fallback()
+                    except ImportError:
+                        fallback_certificates = []
+
+                    return fallback_certificates + _MANUALLY_REGISTERED_CA
 
     RUSTLS_LOADED = True
 except ImportError:
     RUSTLS_LOADED = False
-    from ssl import PEM_cert_to_DER_cert
 
     try:
-        import certifi  # type: ignore
+        import certifi
     except ImportError:
         certifi = None
 
@@ -54,26 +110,20 @@ except ImportError:
         import warnings
 
         warnings.warn(
-            f"""Unable to access your system root CAs. Your particular interpreter and/or
-            operating system ({platform.python_implementation()}, {platform.uname()}, {platform.python_version()})
-            is not supported. While it is not ideal, you may circumvent that warning by having certifi
-            installed in your environment. Run `python -m pip install certifi`.
-            You may also open an issue at https://github.com/jawah/wassima/issues to get your platform supported.""",
+            "Unable to access your system root CAs. Your particular interpreter and/or "
+            f"operating system ({platform.python_implementation()}, {platform.uname()}, {platform.python_version()}) "
+            "is not supported. While it is not ideal, you may circumvent that warning by having certifi "
+            "installed in your environment. Run `python -m pip install certifi`. "
+            "You may also open an issue at https://github.com/jawah/wassima/issues to get your platform supported.",
             RuntimeWarning,
         )
 
     @lru_cache()
     def root_der_certificates() -> list[bytes]:
-        if certifi is None:
+        try:
+            return _certifi_fallback()
+        except ImportError:
             return []
-
-        certs: list[bytes] = []
-
-        with open(certifi.where(), encoding="utf-8") as fp:
-            for pem_cert in fp.read().split("\n\n"):
-                certs.append(PEM_cert_to_DER_cert(pem_cert))
-
-        return certs
 
 
 @lru_cache()
@@ -85,7 +135,7 @@ def root_pem_certificates() -> list[str]:
     pem_certs = []
 
     for bin_cert in root_der_certificates():
-        pem_certs.append(DER_cert_to_PEM_cert(bin_cert))
+        pem_certs.append(ssl.DER_cert_to_PEM_cert(bin_cert))
 
     return pem_certs
 
@@ -104,7 +154,7 @@ def register_ca(pem_or_der_certificate: bytes | str) -> None:
     """
     with _USER_APPEND_CA_LOCK:
         if isinstance(pem_or_der_certificate, str):
-            pem_or_der_certificate = PEM_cert_to_DER_cert(pem_or_der_certificate)
+            pem_or_der_certificate = ssl.PEM_cert_to_DER_cert(pem_or_der_certificate)
 
         if pem_or_der_certificate not in _MANUALLY_REGISTERED_CA:
             _MANUALLY_REGISTERED_CA.append(pem_or_der_certificate)
