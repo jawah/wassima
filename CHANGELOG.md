@@ -3,18 +3,26 @@
 All notable changes to wassima will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 1.1.2 (2024-08-17)
+
+### Changed
+- Bumped `rustls-native-certs` to version 0.7.1
+
+### Added
+- Explicit support for Python 3.13
+
 ## 1.1.1 (2024-04-29)
 
-## Changed
+### Changed
 - Bumped `pyo3` to version 0.20.3
 
-## Fixed
+### Fixed
 - Certifi fallback loading
 - Exception if the underlying rust library could not access the OS store
 
 ## 1.1.0 (2024-02-20)
 
-## Changed
+### Changed
 - Bumped `pyo3` to version 0.20.2
 - Bumped `rustls-native-certs` to version 0.7.0
 - Bumped `maturin` to version 1.4.0

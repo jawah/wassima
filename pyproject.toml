@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "wassima"
-description = "Access your OS root certificates with the atmost ease"
+description = "Access your OS root certificates with utmost ease"
 readme = "README.md"
 license = {file = "LICENSE"}
 keywords = ["truststore", "ssl", "tls", "root ca", "ca", "trust", "https", "certificate"]
@@ -26,6 +26,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3 :: Only",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
