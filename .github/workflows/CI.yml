@@ -44,6 +44,18 @@ jobs:
           allow-prereleases: true
       - name: Setup dependencies
         run: pip install --upgrade pip pytest
+      - name: Install mkcert (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install mkcert
+      - name: Install mkcert (MacOS)
+        if: matrix.os == 'macos-12'
+        run: brew install mkcert
+      - name: Inject fake CA in TrustStore
+        if: matrix.os == 'macos-12' || matrix.os == 'ubuntu-latest'
+        run: mkcert -install
+      - name: Generate a valid certificate
+        if: matrix.os == 'macos-12' || matrix.os == 'ubuntu-latest'
+        run: mkcert example.test
       - name: Build wheels (Unix, Linux)
         if: matrix.os != 'windows-latest'
         uses: PyO3/maturin-action@v1

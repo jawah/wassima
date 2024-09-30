@@ -19,7 +19,7 @@ around MIT licensed **rustls-native-certs**.
 This project allows you to access your original operating system trust store, thus
 helping you to verify the remote peer certificates.
 
-It works as-is out-of-the-box for MacOS, Windows, and Linux.
+It works as-is out-of-the-box for MacOS, Windows, and Linux. Automatically fallback on Certifi otherwise.
 Available on PyPy and Python 3.7+
 
 If your particular operating system is not supported, we will make this happen! Open

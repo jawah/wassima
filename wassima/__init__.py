@@ -7,9 +7,13 @@ from __future__ import annotations
 import contextlib
 import os
 import ssl
+import tempfile
 import typing
 from functools import lru_cache
 from threading import RLock
+
+if typing.TYPE_CHECKING:
+    from io import BufferedWriter
 
 from ._version import VERSION, __version__
 
@@ -22,6 +26,60 @@ MOZ_INTERMEDIATE_CIPHERS: str = "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-
 _MANUALLY_REGISTERED_CA: list[bytes] = []
 #: Lock for shared register-ca
 _USER_APPEND_CA_LOCK = RLock()
+
+
+@contextlib.contextmanager
+def _atomic_open(filename: str) -> typing.Generator[BufferedWriter, None, None]:
+    """Write a file to the disk in an atomic fashion"""
+    tmp_descriptor, tmp_name = tempfile.mkstemp(dir=os.path.dirname(filename))
+    try:
+        with os.fdopen(tmp_descriptor, "wb") as tmp_handler:
+            yield tmp_handler
+        os.replace(tmp_name, filename)
+    except BaseException:
+        os.remove(tmp_name)
+        raise
+
+
+def _extract_zipped_paths(path: str) -> str:
+    """Replace nonexistent paths that look like they refer to a member of a zip
+    archive with the location of an extracted copy of the target, or else
+    just return the provided path unchanged.
+    """
+    if os.path.exists(path):
+        # this is already a valid path, no need to do anything further
+        return path
+
+    import zipfile
+
+    # find the first valid part of the provided path and treat that as a zip archive
+    # assume the rest of the path is the name of a member in the archive
+    archive, member = os.path.split(path)
+    while archive and not os.path.exists(archive):
+        archive, prefix = os.path.split(archive)
+        if not prefix:
+            # If we don't check for an empty prefix after the split (in other words, archive remains unchanged after the split),
+            # we _can_ end up in an infinite loop on a rare corner case affecting a small number of users
+            break
+        member = "/".join([prefix, member])
+
+    if not zipfile.is_zipfile(archive):
+        return path
+
+    zip_file = zipfile.ZipFile(archive)
+    if member not in zip_file.namelist():
+        return path
+
+    # we have a valid zip archive and a valid member of that archive
+    tmp = tempfile.gettempdir()
+    extracted_path = os.path.join(tmp, member.split("/")[-1])
+
+    if not os.path.exists(extracted_path):
+        # use read + write to avoid the creating nested folders, we only want the file, avoids mkdir racing condition
+        with _atomic_open(extracted_path) as file_handler:
+            file_handler.write(zip_file.read(member))
+
+    return extracted_path
 
 
 def _split_certifi_bundle(data: bytes) -> list[str]:
@@ -66,7 +124,7 @@ def _certifi_fallback() -> list[bytes]:
     certs: list[bytes] = []
 
     try:
-        with open(certifi.where(), "rb") as fp:
+        with open(_extract_zipped_paths(certifi.where()), "rb") as fp:
             for pem_cert in _split_certifi_bundle(fp.read()):
                 certs.append(ssl.PEM_cert_to_DER_cert(pem_cert))
     except (OSError, PermissionError) as e:
