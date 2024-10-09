@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import http.server
+import threading
+from os.path import exists
 from socket import AF_INET, SOCK_STREAM, socket
-from ssl import SSLError
+from ssl import PROTOCOL_TLS_SERVER, SSLContext, SSLError
+from time import sleep
 
 import pytest
 
@@ -59,3 +63,45 @@ def test_ctx_use_system_store(host: str, port: int, expect_failure: bool) -> Non
         assert s.getpeercert() is not None
 
     s.close()
+
+
+def serve():
+    context = SSLContext(PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(
+        certfile="./example.test.pem", keyfile="./example.test-key.pem"
+    )
+    server_address = ("127.0.0.1", 47476)
+    httpd = http.server.HTTPServer(server_address, http.server.SimpleHTTPRequestHandler)
+    httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
+    httpd.serve_forever()
+
+
+@pytest.mark.skipif(not exists("./example.test.pem"), reason="test requires mkcert")
+def test_ctx_access_local_trusted_root() -> None:
+    ctx = create_default_ssl_context()
+
+    t = threading.Thread(target=serve)
+    t.daemon = True
+    t.start()
+
+    s = socket(AF_INET, SOCK_STREAM)
+    s = ctx.wrap_socket(s, server_hostname="example.test")
+
+    i = 0
+
+    while True:
+        sleep(1)
+
+        if i >= 5:
+            break
+
+        try:
+            s.connect(("127.0.0.1", 47476))
+        except ConnectionError:
+            i += 1
+        except SSLError:
+            assert False
+        else:
+            break
+
+    assert s.getpeercert() is not None
