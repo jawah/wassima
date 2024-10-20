@@ -9,10 +9,10 @@ readme = "README.md"
 license = {file = "LICENSE"}
 keywords = ["truststore", "ssl", "tls", "root ca", "ca", "trust", "https", "certificate"]
 authors = [
-  {name = "Ahmed R. TAHRI", email="ahmed.tahri@cloudnursery.dev"},
+  {name = "Ahmed R. TAHRI", email="tahri.ahmed@proton.me"},
 ]
 maintainers = [
-  {name = "Ahmed R. TAHRI", email="ahmed.tahri@cloudnursery.dev"},
+  {name = "Ahmed R. TAHRI", email="tahri.ahmed@proton.me"},
 ]
 requires-python = ">=3.7"
 classifiers = [
