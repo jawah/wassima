@@ -185,6 +185,89 @@ jobs:
           name: wheels
           path: dist
 
+  freethreaded_macos:
+    needs: macos
+    strategy:
+      matrix:
+        target: [x86_64, aarch64, universal2]
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.13t
+      - run: git apply -f freethreaded.patch
+        name: Make Wassima FreeThreaded Capable
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --interpreter 3.13t
+          sccache: 'true'
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
+  freethreaded_linux:
+    needs: linux
+    strategy:
+      matrix:
+        target: [x86_64, x86, aarch64, armv7, s390x, ppc64le, ppc64, i686]
+        manylinux: ['auto', 'musllinux_1_1']
+        exclude:
+          - manylinux: musllinux_1_1
+            target: s390x
+          - manylinux: musllinux_1_1
+            target: ppc64
+          - manylinux: musllinux_1_1
+            target: ppc64le
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.13t
+      - run: git apply -f freethreaded.patch
+        name: Make Wassima FreeThreaded Capable
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --interpreter 3.13t
+          sccache: 'true'
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
+  freethreaded_windows:
+    needs: windows
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [ x64, aarch64 ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.13t
+          architecture: x64
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist
+          sccache: 'true'
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
   sdist:
     needs:
       - test
@@ -228,7 +311,7 @@ jobs:
   checksum:
     name: compute hashes
     runs-on: ubuntu-22.04
-    needs: [linux, windows, macos, sdist, universal]
+    needs: [linux, windows, macos, sdist, universal, freethreaded_linux, freethreaded_macos, freethreaded_windows]
     if: "startsWith(github.ref, 'refs/tags/')"
     outputs:
       hashes: ${{ steps.compute.outputs.hashes }}
