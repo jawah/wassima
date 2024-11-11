@@ -217,7 +217,7 @@ jobs:
               -applyChoiceChangesXML ./choicechanges.plist \
               -target /
           rm -f python-3.13.0-macos11.pkg
-      - run: git apply -f freethreaded.patch
+      - run: git apply freethreaded.patch
         name: Make Wassima FreeThreaded Capable
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -235,7 +235,7 @@ jobs:
     needs: linux
     strategy:
       matrix:
-        target: [x86_64, aarch64]
+        target: [x86_64, aarch64, s390x]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -243,7 +243,7 @@ jobs:
         with:
           python-version: 3.13
           nogil: true
-      - run: git apply -f freethreaded.patch
+      - run: git apply freethreaded.patch
         name: Make Wassima FreeThreaded Capable
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -274,11 +274,13 @@ jobs:
           Start-Process "setup-python.exe" -argumentlist "/quiet PrependPath=1 TargetDir=C:\Python313 Include_freethreaded=1" -wait
           C:\Python313\python3.13t.exe -m pip install -r requirements.txt
           C:\Python313\python3.13t.exe -c "import sys; print(sys._is_gil_enabled())"
+      - run: git apply freethreaded.patch
+        name: Make Wassima FreeThreaded Capable
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist
+          args: --release --out dist --interpreter 3.13t
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v3
