@@ -229,7 +229,7 @@ jobs:
         uses: pypa/cibuildwheel@7940a4c0e76eb2030e473a5f864f291f63ee879b # v2.21.3
         env:
           CIBW_BUILD_FRONTEND: build
-          CIBW_BEFORE_BUILD: git apply freethreaded.patch
+          CIBW_BEFORE_ALL: git apply freethreaded.patch
           CIBW_BUILD: cp313t*
           CIBW_BEFORE_ALL_LINUX: curl -sSf https://sh.rustup.rs | sh -s -- -y
           CIBW_BEFORE_ALL_WINDOWS: rustup target add i686-pc-windows-msvc
