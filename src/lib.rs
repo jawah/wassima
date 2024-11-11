@@ -1,6 +1,5 @@
 use pyo3::{prelude::*, types::PyBytes};
 use pyo3::exceptions::PyRuntimeError;
-use rustls_native_certs;
 
 /// Retrieve a list of system DER root CAs
 #[pyfunction]
@@ -13,10 +12,10 @@ fn root_der_certificates(py: Python) -> PyResult<Vec<Bound<'_, PyBytes, >>> {
     }
 
     for cert in certs.unwrap() {
-        roots.push(PyBytes::new_bound(py, &cert.as_ref().to_vec()));
+        roots.push(PyBytes::new_bound(py, cert.as_ref()));
     }
 
-    return Ok(roots);
+    Ok(roots)
 }
 
 #[pymodule]
