@@ -194,36 +194,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Python FreeThreaded
-        run: |
-          curl -O https://www.python.org/ftp/python/3.13.0/python-3.13.0-macos11.pkg
-          cat > ./choicechanges.plist <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <array>
-                  <dict>
-                          <key>attributeSetting</key>
-                          <integer>1</integer>
-                          <key>choiceAttribute</key>
-                          <string>selected</string>
-                          <key>choiceIdentifier</key>
-                          <string>org.python.Python.PythonTFramework-3.13</string>
-                  </dict>
-          </array>
-          </plist>
-          EOF
-
-          sudo installer -pkg ./python-3.13.0-macos11.pkg \
-              -applyChoiceChangesXML ./choicechanges.plist \
-              -target /
-          rm -f python-3.13.0-macos11.pkg
+        run: brew install python-freethreading
       - run: git apply freethreaded.patch
         name: Make Wassima FreeThreaded Capable
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --interpreter 3.13t
+          args: --release --out dist --interpreter 3.13
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v3
@@ -239,17 +217,18 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - uses: deadsnakes/action@v3.2.0
-        with:
-          python-version: 3.13
-          nogil: true
+      - run: |
+          sudo add-apt-repository ppa:deadsnakes
+          sudo apt-get update
+          sudo apt-get install python3.13-nogil
+        name: Install Python FreeThreaded
       - run: git apply freethreaded.patch
         name: Make Wassima FreeThreaded Capable
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --interpreter 3.13t
+          args: --release --out dist --interpreter 3.13
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v3
@@ -280,7 +259,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --interpreter 3.13t
+          args: --release --out dist --interpreter 3.13
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v3
