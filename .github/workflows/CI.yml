@@ -46,7 +46,7 @@ jobs:
           python-version: ${{ matrix.python_version }}
           allow-prereleases: true
       - name: Setup dependencies
-        run: pip install --upgrade pip pytest
+        run: pip install pytest
       - name: Install mkcert (Linux)
         if: matrix.os == 'ubuntu-22.04'
         run: sudo apt-get install mkcert
