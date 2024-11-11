@@ -1,0 +1,101 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 2944e60..4f98615 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -92,9 +92,8 @@ dependencies = [
+ 
+ [[package]]
+ name = "pyo3"
+-version = "0.22.6"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "f402062616ab18202ae8319da13fa4279883a2b8a9d9f83f20dbade813ce1884"
++version = "0.23.0-dev"
++source = "git+https://github.com/PyO3/pyo3.git?branch=main#be4407cde9a8739f7c1ea4875a0287c08fb90220"
+ dependencies = [
+  "cfg-if",
+  "indoc",
+@@ -110,9 +109,8 @@ dependencies = [
+ 
+ [[package]]
+ name = "pyo3-build-config"
+-version = "0.22.6"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "b14b5775b5ff446dd1056212d778012cbe8a0fbffd368029fd9e25b514479c38"
++version = "0.23.0-dev"
++source = "git+https://github.com/PyO3/pyo3.git?branch=main#be4407cde9a8739f7c1ea4875a0287c08fb90220"
+ dependencies = [
+  "once_cell",
+  "target-lexicon",
+@@ -120,9 +118,8 @@ dependencies = [
+ 
+ [[package]]
+ name = "pyo3-ffi"
+-version = "0.22.6"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "9ab5bcf04a2cdcbb50c7d6105de943f543f9ed92af55818fd17b660390fc8636"
++version = "0.23.0-dev"
++source = "git+https://github.com/PyO3/pyo3.git?branch=main#be4407cde9a8739f7c1ea4875a0287c08fb90220"
+ dependencies = [
+  "libc",
+  "pyo3-build-config",
+@@ -130,9 +127,8 @@ dependencies = [
+ 
+ [[package]]
+ name = "pyo3-macros"
+-version = "0.22.6"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0fd24d897903a9e6d80b968368a34e1525aeb719d568dba8b3d4bfa5dc67d453"
++version = "0.23.0-dev"
++source = "git+https://github.com/PyO3/pyo3.git?branch=main#be4407cde9a8739f7c1ea4875a0287c08fb90220"
+ dependencies = [
+  "proc-macro2",
+  "pyo3-macros-backend",
+@@ -142,9 +138,8 @@ dependencies = [
+ 
+ [[package]]
+ name = "pyo3-macros-backend"
+-version = "0.22.6"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "36c011a03ba1e50152b4b394b479826cad97e7a21eb52df179cd91ac411cbfbe"
++version = "0.23.0-dev"
++source = "git+https://github.com/PyO3/pyo3.git?branch=main#be4407cde9a8739f7c1ea4875a0287c08fb90220"
+ dependencies = [
+  "heck",
+  "proc-macro2",
+diff --git a/Cargo.toml b/Cargo.toml
+index 3a113e0..e89bfc2 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -9,8 +9,11 @@ name = "wassima"
+ crate-type = ["cdylib"]
+ 
+ [dependencies]
+-pyo3 = { version = "0.22.6", features = ["abi3-py37", "extension-module"] }
++pyo3 = { version = "0.23.0-dev", features = ["extension-module"] }
+ rustls-native-certs = "0.7.3"
+ 
++[patch.crates-io]
++pyo3 = { git = 'https://github.com/PyO3/pyo3.git', branch = 'main' }
++
+ [package.metadata.maturin]
+ python-source = "wassima"
+diff --git a/src/lib.rs b/src/lib.rs
+index bdd6f32..a8ed1d8 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -12,13 +12,13 @@ fn root_der_certificates(py: Python) -> PyResult<Vec<Bound<'_, PyBytes, >>> {
+     }
+ 
+     for cert in certs.unwrap() {
+-        roots.push(PyBytes::new_bound(py, cert.as_ref()));
++        roots.push(PyBytes::new(py, cert.as_ref()));
+     }
+ 
+     Ok(roots)
+ }
+ 
+-#[pymodule]
++#[pymodule(gil_used = false)]
+ fn _rustls(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+     m.add_function(wrap_pyfunction!(root_der_certificates, m)?)?;
+     Ok(())
