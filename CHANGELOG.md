@@ -3,6 +3,15 @@
 All notable changes to wassima will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 1.1.6 (2024-11-11)
+
+### Changed
+- pyo3 updated from 0.22.5 to 0.22.6
+- minor improvements in Rust code.
+
+### Added
+- Initial support for Python 3.13 freethreaded experimental build using pyo3 0.23-dev
+
 ## 1.1.5 (2024-10-27)
 
 ### Changed
