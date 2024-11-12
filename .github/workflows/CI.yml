@@ -212,7 +212,7 @@ jobs:
         if: ${{ matrix.qemu }}
         uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
         with:
-          platforms: all
+          platforms: arm64,s390x,ppc64le
         id: qemu
       - name: Prepare emulation
         run: |
@@ -233,10 +233,11 @@ jobs:
           CIBW_BEFORE_BUILD_WINDOWS: git apply freethreaded.patch || (exit 0)
           CIBW_BUILD: cp313t*
           CIBW_BEFORE_ALL_LINUX: curl -sSf https://sh.rustup.rs | sh -s -- -y
-          CIBW_BEFORE_ALL_WINDOWS: rustup target add i686-pc-windows-msvc
+          CIBW_BEFORE_ALL_WINDOWS: rustup target add aarch64-pc-windows-msvc
           CIBW_BEFORE_ALL_MACOS: rustup target add aarch64-apple-darwin
           CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH"
           CIBW_ARCHS_MACOS: universal2
+          CIBW_ARCHS_WINDOWS: AMD64 ARM64
 
       - name: Upload wheels
         uses: actions/upload-artifact@v3
