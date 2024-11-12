@@ -4,6 +4,7 @@ import http.server
 import threading
 from os.path import exists
 from socket import AF_INET, SOCK_STREAM, socket
+from socket import timeout as SocketTimeout
 from ssl import PROTOCOL_TLS_SERVER, SSLContext, SSLError
 from time import sleep
 
@@ -48,19 +49,42 @@ def test_ctx_use_system_store(host: str, port: int, expect_failure: bool) -> Non
 
     s = socket(AF_INET, SOCK_STREAM)
     s = ctx.wrap_socket(s, server_hostname=host)
+    s.settimeout(5)
 
-    if expect_failure:
-        with pytest.raises(SSLError) as exc:
-            s.connect((host, port))
-        ssl_err = exc.value.args[1]
-        assert (
-            "self-signed" in ssl_err
-            or "self signed" in ssl_err
-            or "unable to get local issuer certificate" in ssl_err
-        )
-    else:
-        s.connect((host, port))
-        assert s.getpeercert() is not None
+    i = 0
+
+    while True:
+        try:
+            if expect_failure:
+                with pytest.raises(SSLError) as exc:
+                    s.connect((host, port))
+                ssl_err = exc.value.args[1]
+                assert (
+                    "self-signed" in ssl_err
+                    or "self signed" in ssl_err
+                    or "unable to get local issuer certificate" in ssl_err
+                )
+            else:
+                s.connect((host, port))
+                assert s.getpeercert() is not None
+
+            break
+        except (
+            ConnectionResetError,
+            ConnectionRefusedError,
+            TimeoutError,
+            SocketTimeout,
+        ):
+            i += 1
+            if i >= 15:
+                assert False
+
+            s.close()
+            s = socket(AF_INET, SOCK_STREAM)
+            s = ctx.wrap_socket(s, server_hostname=host)
+            s.settimeout(1)
+
+            continue
 
     s.close()
 
@@ -86,22 +110,34 @@ def test_ctx_access_local_trusted_root() -> None:
 
     s = socket(AF_INET, SOCK_STREAM)
     s = ctx.wrap_socket(s, server_hostname="example.test")
+    s.settimeout(5)
 
     i = 0
 
     while True:
         sleep(1)
 
-        if i >= 5:
-            break
+        if i >= 10:
+            assert False
 
         try:
             s.connect(("127.0.0.1", 47476))
-        except ConnectionError:
+        except (ConnectionError, TimeoutError, SocketTimeout):
             i += 1
-        except SSLError:
+            s.close()
+            s = socket(AF_INET, SOCK_STREAM)
+            s = ctx.wrap_socket(s, server_hostname="example.test")
+            s.settimeout(5)
+        except SSLError as e:
+            if "timeout" in str(e):
+                s.close()
+                s = socket(AF_INET, SOCK_STREAM)
+                s = ctx.wrap_socket(s, server_hostname="example.test")
+                s.settimeout(5)
+                continue
             assert False
         else:
             break
 
     assert s.getpeercert() is not None
+    s.close()
