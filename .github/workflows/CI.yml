@@ -118,7 +118,7 @@ jobs:
         run: git apply freethreaded.patch
       - name: Ensure Python PATH (FreeThreaded)
         if: matrix.python_version == '3.13t'
-        run: echo "/opt/hostedtoolcache/Python/3.13.0/x64-freethreaded/bin" >> "$GITHUB_PATH"
+        run: echo "/opt/hostedtoolcache/Python/3.13.0/x64-freethreaded" >> "$GITHUB_PATH"
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
