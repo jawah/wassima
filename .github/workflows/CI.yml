@@ -116,11 +116,14 @@ jobs:
       - name: FreeThreaded Patch
         if: matrix.python_version == '3.13t'
         run: git apply freethreaded.patch
+      - name: Ensure Python PATH (FreeThreaded)
+        if: matrix.python_version == '3.13t'
+        run: echo "/opt/hostedtoolcache/Python/3.13.0/x64-freethreaded/bin" >> "$GITHUB_PATH"
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist -i ${{ matrix.python_version == '3.13t' && '3.13' || matrix.python_version }}
+          args: --release --out dist
           sccache: 'true'
           manylinux: ${{ matrix.manylinux }}
       - name: Upload wheels
