@@ -116,18 +116,10 @@ jobs:
       - name: FreeThreaded Patch
         if: matrix.python_version == '3.13t'
         run: git apply freethreaded.patch
-      - id: resolve-interpreter
+      - if: matrix.python_version == '3.13t'
         name: resolve interpreter
         run: |
-          echo python-path=/opt/python/$(python -c "print({
-            '3.8': 'cp38-cp38',
-            '3.9': 'cp39-cp39',
-            '3.10': 'cp310-cp310',
-            '3.11': 'cp311-cp311',
-            '3.12': 'cp312-cp312',
-            '3.13': 'cp313-cp313',
-            '3.13t': 'cp313-cp313t',
-          }['${{ matrix.python_version }}'])")/bin/python >> $GITHUB_OUTPUT
+          echo python-path=/opt/python/cp313-cp313t/bin/python >> $GITHUB_OUTPUT
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
