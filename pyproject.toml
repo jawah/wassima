@@ -46,7 +46,7 @@ dependencies = [
 "Issue tracker" = "https://github.com/jawah/wassima/issues"
 
 [tool.maturin]
-features = ["pyo3/extension-module"]
+features = ["pyo3/extension-module", "pyo3/abi3-py37"]
 module-name = "wassima._rustls"
 
 [tool.pytest.ini_options]
@@ -73,6 +73,3 @@ warn_redundant_casts = true
 warn_return_any = true
 warn_unused_configs = true
 warn_unused_ignores = true
-
-[tool.cibuildwheel]
-free-threaded-support = true

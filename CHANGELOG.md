@@ -6,11 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## 1.1.6 (2024-11-11)
 
 ### Changed
-- pyo3 updated from 0.22.5 to 0.22.6
+- pyo3 updated from 0.22.5 to 0.23.1
 - minor improvements in Rust code.
 
 ### Added
-- Initial support for Python 3.13 freethreaded experimental build using pyo3 0.23-dev
+- Initial support for Python 3.13 freethreaded experimental build.
 
 ## 1.1.5 (2024-10-27)
 

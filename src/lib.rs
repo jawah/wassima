@@ -14,7 +14,7 @@ fn root_der_certificates(py: Python) -> PyResult<Vec<Bound<'_, PyBytes>>> {
     }
 
     for cert in certs.unwrap() {
-        roots.push(PyBytes::new_bound(py, cert.as_ref()));
+        roots.push(PyBytes::new(py, cert.as_ref()));
     }
 
     Ok(roots)
