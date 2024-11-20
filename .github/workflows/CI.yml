@@ -124,7 +124,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist
+          args: --release --out dist --interpreter ${{ matrix.python_version == '3.13t' && '/opt/python/cp313-cp313t/bin/python' || matrix.python_version }}
           sccache: 'true'
           manylinux: ${{ matrix.manylinux }}
       - name: Upload wheels
