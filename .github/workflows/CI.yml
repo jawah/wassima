@@ -34,7 +34,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-22.04, macos-13, windows-latest ]
-        python_version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10']
+        python_version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', 'pypy-3.9', 'pypy-3.10']
         exclude:
           - python_version: 3.7
             os: macos-13
@@ -93,7 +93,7 @@ jobs:
       fail-fast: false
       matrix:
         target: [x86_64, x86, aarch64, armv7, s390x, ppc64le, ppc64, i686]
-        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', '3.13t']
+        python_version: ['3.10', 'pypy-3.9', 'pypy-3.10', '3.13t']
         manylinux: ['auto', 'musllinux_1_1']
         exclude:
           - manylinux: musllinux_1_1
@@ -135,7 +135,7 @@ jobs:
       fail-fast: false
       matrix:
         target: [x64, aarch64]
-        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', '3.13t']
+        python_version: ['3.10', 'pypy-3.9', 'pypy-3.10', '3.13t']
         exclude:
           - target: aarch64
             python_version: 'pypy-3.7'
@@ -180,7 +180,7 @@ jobs:
       fail-fast: false
       matrix:
         target: [x86_64, aarch64, universal2]
-        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', '3.13t']
+        python_version: ['3.10', 'pypy-3.9', 'pypy-3.10', '3.13t']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
