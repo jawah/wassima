@@ -20,7 +20,7 @@ fn root_der_certificates(py: Python) -> PyResult<Vec<Bound<'_, PyBytes>>> {
     Ok(roots)
 }
 
-#[pymodule]
+#[pymodule(gil_used = false)]
 fn _rustls(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(root_der_certificates, m)?)?;
     Ok(())
