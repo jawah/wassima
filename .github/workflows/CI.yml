@@ -145,8 +145,6 @@ jobs:
             python_version: 'pypy-3.9'
           - target: aarch64
             python_version: 'pypy-3.10'
-          - target: aarch64
-            python_version: '3.13t'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
