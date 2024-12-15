@@ -3,7 +3,6 @@ name = "wassima"
 version = "1.1.6"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 name = "wassima"
 crate-type = ["cdylib"]
