@@ -3,14 +3,19 @@
 All notable changes to wassima will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## 1.1.6 (2024-11-11)
+## 1.1.6 (2024-12-15)
 
 ### Changed
-- pyo3 updated from 0.22.5 to 0.23.1
-- minor improvements in Rust code.
+- pyo3 updated from 0.22.5 to 0.23.3
+
+### Fixed
+- Clippy warnings in our Rust code.
 
 ### Added
 - Initial support for Python 3.13 freethreaded experimental build.
+
+### Removed
+- PyPy 3.7 and 3.8 native access to the truststore due to PyO3 dropping support for them. They will fallback to certifi.
 
 ## 1.1.5 (2024-10-27)
 
