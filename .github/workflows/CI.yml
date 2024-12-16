@@ -127,8 +127,6 @@ jobs:
           path: dist
 
   windows:
-    env:
-      MATURIN_USE_XWIN: 1
     needs:
       - test
       - lint
