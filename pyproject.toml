@@ -1,5 +1,5 @@
 [build-system]
-requires = ["maturin>=1.2,<2.0"]
+requires = ["maturin>=1.7,<2"]
 build-backend = "maturin"
 
 [project]
@@ -38,6 +38,7 @@ classifiers = [
 dependencies = [
   "certifi; (platform_python_implementation != 'CPython' or python_full_version < '3.7.10') or (platform_system != 'Darwin' and platform_system != 'Windows' and platform_system != 'Linux') or (platform_machine != 'x86_64' and platform_machine != 's390x' and platform_machine != 'aarch64' and platform_machine != 'armv7l' and platform_machine != 'ppc64le' and platform_machine != 'ppc64' and platform_machine != 'AMD64' and platform_machine != 'arm64' and platform_machine != 'ARM64' and platform_machine != 'i686') or (platform_python_implementation == 'PyPy' and python_version >= '3.11')",
 ]
+dynamic = ["version"]
 
 [project.urls]
 "Changelog" = "https://github.com/jawah/wassima/blob/main/CHANGELOG.md"
@@ -46,7 +47,7 @@ dependencies = [
 "Issue tracker" = "https://github.com/jawah/wassima/issues"
 
 [tool.maturin]
-features = ["pyo3/extension-module"]
+features = ["pyo3/extension-module", "pyo3/abi3-py37", "pyo3/generate-import-lib"]
 module-name = "wassima._rustls"
 
 [tool.pytest.ini_options]

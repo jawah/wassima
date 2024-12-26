@@ -21,10 +21,10 @@ jobs:
   lint:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
       - run: pip install pre-commit
         name: Install pre-commit
       - run: pre-commit run --all
@@ -33,17 +33,20 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-12, windows-latest ]
+        os: [ubuntu-22.04, macos-13, windows-latest ]
         python_version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10']
+        exclude:
+          - python_version: 3.7
+            os: macos-13
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
           allow-prereleases: true
       - name: Setup dependencies
-        run: pip install --upgrade pip pytest
+        run: pip install pytest
       - name: Install mkcert (Linux)
         if: matrix.os == 'ubuntu-22.04'
         run: sudo apt-get install mkcert
@@ -59,13 +62,18 @@ jobs:
       - name: Build wheels (Unix, Linux)
         if: matrix.os != 'windows-latest'
         uses: PyO3/maturin-action@v1
+        env:
+          UNSAFE_PYO3_SKIP_VERSION_CHECK: 1
         with:
           args: --release --out dist --interpreter ${{ matrix.python_version }}
           sccache: 'true'
           manylinux: auto
+          docker-options: -e UNSAFE_PYO3_SKIP_VERSION_CHECK=1
       - name: Build wheels (NT)
         if: matrix.os == 'windows-latest'
         uses: PyO3/maturin-action@v1
+        env:
+          UNSAFE_PYO3_SKIP_VERSION_CHECK: 1
         with:
           args: --release --out dist
           sccache: 'true'
@@ -90,7 +98,7 @@ jobs:
       fail-fast: false
       matrix:
         target: [x86_64, x86, aarch64, armv7, s390x, ppc64le, ppc64, i686]
-        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10']
+        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', '3.13t']
         manylinux: ['auto', 'musllinux_1_1']
         exclude:
           - manylinux: musllinux_1_1
@@ -101,17 +109,25 @@ jobs:
             target: ppc64le
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        if: matrix.python_version != '3.13t'
         with:
           python-version: ${{ matrix.python_version }}
+      - uses: Quansight-Labs/setup-python@v5
+        if: matrix.python_version == '3.13t'
+        with:
+          python-version: '3.13t'
       - name: Build wheels
         uses: PyO3/maturin-action@v1
+        env:
+          UNSAFE_PYO3_SKIP_VERSION_CHECK: 1
         with:
           target: ${{ matrix.target }}
           args: --release --out dist --interpreter ${{ matrix.python_version }}
           sccache: 'true'
           manylinux: ${{ matrix.manylinux }}
+          docker-options: -e UNSAFE_PYO3_SKIP_VERSION_CHECK=1
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
@@ -127,7 +143,7 @@ jobs:
       fail-fast: false
       matrix:
         target: [x64, aarch64]
-        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10']
+        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', '3.13t']
         exclude:
           - target: aarch64
             python_version: 'pypy-3.7'
@@ -137,18 +153,30 @@ jobs:
             python_version: 'pypy-3.9'
           - target: aarch64
             python_version: 'pypy-3.10'
+          # known bug pyo3+maturin fail to produce correct wheel
+          - target: aarch64
+            python_version: 3.13t
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        if: matrix.python_version != '3.13t'
         with:
           python-version: ${{ matrix.python_version }}
           architecture: x64
+      - uses: Quansight-Labs/setup-python@v5
+        if: matrix.python_version == '3.13t'
+        with:
+          python-version: '3.13t'
+          architecture: x64
       - name: Build wheels
         uses: PyO3/maturin-action@v1
+        env:
+          UNSAFE_PYO3_SKIP_VERSION_CHECK: 1
+          PYO3_CROSS: ${{ matrix.target == 'aarch64' && '1' || '' }}
         with:
           target: ${{ matrix.target }}
           args: --release --out dist
-          sccache: 'true'
+          sccache: 'false'
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
@@ -159,22 +187,29 @@ jobs:
     needs:
       - test
       - lint
-    runs-on: macos-12
+    runs-on: macos-13
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_64, aarch64, universal2]
-        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10']
+        target: [universal2]
+        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', '3.13t']
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        if: matrix.python_version != '3.13t'
         with:
           python-version: ${{ matrix.python_version }}
+      - uses: Quansight-Labs/setup-python@v5
+        if: matrix.python_version == '3.13t'
+        with:
+          python-version: '3.13t'
       - name: Build wheels
         uses: PyO3/maturin-action@v1
+        env:
+          UNSAFE_PYO3_SKIP_VERSION_CHECK: 1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --interpreter ${{ matrix.python_version }}
+          args: --release --out dist
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v3
@@ -188,7 +223,7 @@ jobs:
       - lint
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build sdist
         uses: PyO3/maturin-action@v1
         with:
@@ -206,8 +241,8 @@ jobs:
       - lint
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
       - name: Install dependencies
@@ -247,7 +282,7 @@ jobs:
   provenance:
     needs: checksum
     if: "startsWith(github.ref, 'refs/tags/')"
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.10.0
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
     permissions:
       actions: read
       id-token: write
