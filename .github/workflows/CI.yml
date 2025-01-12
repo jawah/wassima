@@ -51,13 +51,13 @@ jobs:
         if: matrix.os == 'ubuntu-22.04'
         run: sudo apt-get install mkcert
       - name: Install mkcert (MacOS)
-        if: matrix.os == 'macos-12'
+        if: matrix.os == 'macos-13'
         run: brew install mkcert
       - name: Inject fake CA in TrustStore
-        if: matrix.os == 'macos-12' || matrix.os == 'ubuntu-22.04'
+        if: matrix.os == 'macos-13' || matrix.os == 'ubuntu-22.04'
         run: mkcert -install
       - name: Generate a valid certificate
-        if: matrix.os == 'macos-12' || matrix.os == 'ubuntu-22.04'
+        if: matrix.os == 'macos-13' || matrix.os == 'ubuntu-22.04'
         run: mkcert example.test
       - name: Build wheels (Unix, Linux)
         if: matrix.os != 'windows-latest'
@@ -153,9 +153,6 @@ jobs:
             python_version: 'pypy-3.9'
           - target: aarch64
             python_version: 'pypy-3.10'
-          # known bug pyo3+maturin fail to produce correct wheel
-          - target: aarch64
-            python_version: 3.13t
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -172,7 +169,6 @@ jobs:
         uses: PyO3/maturin-action@v1
         env:
           UNSAFE_PYO3_SKIP_VERSION_CHECK: 1
-          PYO3_CROSS: ${{ matrix.target == 'aarch64' && '1' || '' }}
         with:
           target: ${{ matrix.target }}
           args: --release --out dist
