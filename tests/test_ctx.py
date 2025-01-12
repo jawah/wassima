@@ -89,22 +89,24 @@ def test_ctx_use_system_store(host: str, port: int, expect_failure: bool) -> Non
     s.close()
 
 
-def serve():
+def serve(server: http.server.HTTPServer):
     context = SSLContext(PROTOCOL_TLS_SERVER)
     context.load_cert_chain(
         certfile="./example.test.pem", keyfile="./example.test-key.pem"
     )
-    server_address = ("127.0.0.1", 47476)
-    httpd = http.server.HTTPServer(server_address, http.server.SimpleHTTPRequestHandler)
-    httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
-    httpd.serve_forever()
+
+    server.socket = context.wrap_socket(server.socket, server_side=True)
+    server.serve_forever()
 
 
 @pytest.mark.skipif(not exists("./example.test.pem"), reason="test requires mkcert")
 def test_ctx_access_local_trusted_root() -> None:
     ctx = create_default_ssl_context()
 
-    t = threading.Thread(target=serve)
+    server_address = ("127.0.0.1", 47476)
+    httpd = http.server.HTTPServer(server_address, http.server.SimpleHTTPRequestHandler)
+
+    t = threading.Thread(target=serve, args=(httpd,))
     t.daemon = True
     t.start()
 
@@ -141,3 +143,5 @@ def test_ctx_access_local_trusted_root() -> None:
 
     assert s.getpeercert() is not None
     s.close()
+
+    httpd.shutdown()

@@ -3,6 +3,12 @@
 All notable changes to wassima will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 1.2.0 (2025-01-12)
+
+### Changed
+- pyo3 updated from 0.23.3 to 0.23.4
+- rustls-native-certs updated from 0.7 to 0.8
+
 ## 1.1.6 (2024-12-26)
 
 ### Changed

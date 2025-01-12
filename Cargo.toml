@@ -1,6 +1,6 @@
 [package]
 name = "wassima"
-version = "1.1.6"
+version = "1.2.0"
 edition = "2021"
 
 [lib]
@@ -8,8 +8,8 @@ name = "wassima"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.23.3", features = ["abi3-py37", "extension-module", "generate-import-lib"] }
-rustls-native-certs = "0.7.3"
+pyo3 = { version = "0.23.4", features = ["abi3-py37", "extension-module", "generate-import-lib"] }
+rustls-native-certs = "0.8.1"
 
 [package.metadata.maturin]
 python-source = "wassima"
