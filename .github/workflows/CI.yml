@@ -163,16 +163,16 @@ jobs:
         with:
           python-version: '3.13t'
           architecture: x64
-      - name: Build wheels
+      - name: Build wheels (normal)
         uses: PyO3/maturin-action@v1
-        if: matrix.python_version != '3.13t' && matrix.target != 'aarch64'
+        if: matrix.python_version != '3.13t' || matrix.target == 'x64'
         env:
           UNSAFE_PYO3_SKIP_VERSION_CHECK: 1
         with:
           target: ${{ matrix.target }}
           args: --release --out dist
           sccache: 'false'
-      - name: Build wheels
+      - name: Build wheels (workaround 3.13t arm64)
         uses: PyO3/maturin-action@v1
         if: matrix.python_version == '3.13t' && matrix.target == 'aarch64'
         env:
