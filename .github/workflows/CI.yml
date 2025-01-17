@@ -130,7 +130,7 @@ jobs:
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
           name: wheels-linux-${{ matrix.manylinux }}-${{ matrix.target }}-${{ matrix.python_version }}
-          path: dist
+          path: dist/*.whl
 
   windows:
     needs:
@@ -195,7 +195,7 @@ jobs:
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
           name: wheels-windows-${{ matrix.target }}-${{ matrix.python_version }}
-          path: dist
+          path: dist/*.whl
 
   macos:
     needs:
@@ -229,7 +229,7 @@ jobs:
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
           name: wheels-macos-${{ matrix.target }}-${{ matrix.python_version }}
-          path: dist
+          path: dist/*.whl
 
   sdist:
     needs:
@@ -247,7 +247,7 @@ jobs:
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
           name: wheels-sdist
-          path: dist
+          path: dist/*.tar.gz
 
   universal:
     needs:
@@ -285,6 +285,7 @@ jobs:
         with:
           pattern: wheels-*
           path: dist
+          merge-multiple: true
       - name: Collected dists
         run: |
           tree dist
@@ -320,6 +321,7 @@ jobs:
         with:
           pattern: wheels-*
           path: dist
+          merge-multiple: true
       - name: "Upload dists to GitHub Release"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
