@@ -127,9 +127,9 @@ jobs:
           manylinux: ${{ matrix.manylinux }}
           docker-options: -e UNSAFE_PYO3_SKIP_VERSION_CHECK=1
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
-          name: wheels
+          name: wheels-linux-${{ matrix.manylinux }}-${{ matrix.target }}-${{ matrix.python_version }}
           path: dist
 
   windows:
@@ -140,7 +140,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [x64, aarch64]
+        target: [x64, aarch64, x86]
         python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', '3.13t']
         exclude:
           - target: aarch64
@@ -151,13 +151,23 @@ jobs:
             python_version: 'pypy-3.9'
           - target: aarch64
             python_version: 'pypy-3.10'
+          - target: x86
+            python_version: 'pypy-3.7'
+          - target: x86
+            python_version: 'pypy-3.8'
+          - target: x86
+            python_version: 'pypy-3.9'
+          - target: x86
+            python_version: 'pypy-3.10'
+          - target: x86
+            python_version: '3.13t'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         if: matrix.python_version != '3.13t'
         with:
           python-version: ${{ matrix.python_version }}
-          architecture: x64
+          architecture: ${{ matrix.target == 'x86' && 'x86' || 'x64' }}
       - uses: Quansight-Labs/setup-python@v5
         if: matrix.python_version == '3.13t' && matrix.target == 'x64'
         with:
@@ -182,9 +192,9 @@ jobs:
           args: --release --out dist -i 3.13t
           sccache: 'false'
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
-          name: wheels
+          name: wheels-windows-${{ matrix.target }}-${{ matrix.python_version }}
           path: dist
 
   macos:
@@ -216,9 +226,9 @@ jobs:
           args: --release --out dist
           sccache: 'true'
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
-          name: wheels
+          name: wheels-macos-${{ matrix.target }}-${{ matrix.python_version }}
           path: dist
 
   sdist:
@@ -234,9 +244,9 @@ jobs:
           command: sdist
           args: --out dist
       - name: Upload sdist
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
-          name: wheels
+          name: wheels-sdist
           path: dist
 
   universal:
@@ -256,9 +266,9 @@ jobs:
       - name: Build fallback wheel
         run: python -m build
       - name: Upload sdist
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
-          name: wheels
+          name: wheels-universal
           path: dist/*.whl
 
   checksum:
@@ -271,9 +281,9 @@ jobs:
     steps:
       - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
       - name: Download distributions
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
-          name: wheels
+          pattern: wheels-*
           path: dist
       - name: Collected dists
         run: |
@@ -305,11 +315,15 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@v3
+      - name: Download distributions
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
-          name: wheels
+          pattern: wheels-*
+          path: dist
+      - name: "Upload dists to GitHub Release"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          gh release upload ${{ github.ref_name }} dist/* --repo ${{ github.repository }}
       - name: Publish to PyPI
-        uses: PyO3/maturin-action@v1
-        with:
-          command: upload
-          args: --non-interactive --skip-existing *
+        uses: "pypa/gh-action-pypi-publish@67339c736fd9354cd4f8cb0b744f2b82a74b5c70" # v1.12.3
