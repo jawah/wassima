@@ -167,7 +167,7 @@ jobs:
         if: matrix.python_version != '3.13t'
         with:
           python-version: ${{ matrix.python_version }}
-          architecture: x64
+          architecture: ${{ matrix.target == 'x86' && 'x86' || 'x64' }}
       - uses: Quansight-Labs/setup-python@v5
         if: matrix.python_version == '3.13t' && matrix.target == 'x64'
         with:
