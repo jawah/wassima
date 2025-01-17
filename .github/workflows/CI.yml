@@ -266,7 +266,7 @@ jobs:
       - name: Build fallback wheel
         run: python -m build
       - name: Upload sdist
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
           name: wheels-universal
           path: dist/*.whl
