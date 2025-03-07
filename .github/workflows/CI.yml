@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, macos-13, windows-latest ]
-        python_version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10']
+        python_version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', 'pypy-3.11']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -96,7 +96,7 @@ jobs:
       fail-fast: false
       matrix:
         target: [x86_64, aarch64, armv7, s390x, ppc64le, ppc64, i686]
-        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', '3.13t']
+        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', 'pypy-3.11', '3.13t']
         manylinux: ['auto', 'musllinux_1_1']
         exclude:
           - manylinux: musllinux_1_1
@@ -141,7 +141,7 @@ jobs:
       fail-fast: false
       matrix:
         target: [x64, aarch64, x86]
-        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', '3.13t']
+        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', 'pypy-3.11', '3.13t']
         exclude:
           - target: aarch64
             python_version: 'pypy-3.7'
@@ -151,6 +151,8 @@ jobs:
             python_version: 'pypy-3.9'
           - target: aarch64
             python_version: 'pypy-3.10'
+          - target: aarch64
+            python_version: 'pypy-3.11'
           - target: x86
             python_version: 'pypy-3.7'
           - target: x86
@@ -159,6 +161,8 @@ jobs:
             python_version: 'pypy-3.9'
           - target: x86
             python_version: 'pypy-3.10'
+          - target: x86
+            python_version: 'pypy-3.11'
           - target: x86
             python_version: '3.13t'
     steps:
@@ -206,7 +210,7 @@ jobs:
       fail-fast: false
       matrix:
         target: [universal2]
-        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', '3.13t']
+        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', 'pypy-3.11', '3.13t']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
