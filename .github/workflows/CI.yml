@@ -109,13 +109,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        if: matrix.python_version != '3.13t'
         with:
           python-version: ${{ matrix.python_version }}
-      - uses: Quansight-Labs/setup-python@v5
-        if: matrix.python_version == '3.13t'
-        with:
-          python-version: '3.13t'
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         env:
@@ -168,32 +163,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        if: matrix.python_version != '3.13t'
-        with:
-          python-version: ${{ matrix.python_version }}
-          architecture: ${{ matrix.target == 'x86' && 'x86' || 'x64' }}
-      - uses: Quansight-Labs/setup-python@v5
-        if: matrix.python_version == '3.13t' && matrix.target == 'x64'
-        with:
-          python-version: '3.13t'
-          architecture: x64
-      - name: Build wheels (normal)
+      - name: Build wheels
         uses: PyO3/maturin-action@v1
-        if: matrix.python_version != '3.13t' || matrix.target == 'x64'
         env:
           UNSAFE_PYO3_SKIP_VERSION_CHECK: 1
         with:
           target: ${{ matrix.target }}
           args: --release --out dist
-          sccache: 'false'
-      - name: Build wheels (workaround 3.13t arm64)
-        uses: PyO3/maturin-action@v1
-        if: matrix.python_version == '3.13t' && matrix.target == 'aarch64'
-        env:
-          PYO3_CROSS: 1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist -i 3.13t
           sccache: 'false'
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
@@ -214,13 +190,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        if: matrix.python_version != '3.13t'
         with:
           python-version: ${{ matrix.python_version }}
-      - uses: Quansight-Labs/setup-python@v5
-        if: matrix.python_version == '3.13t'
-        with:
-          python-version: '3.13t'
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         env:
