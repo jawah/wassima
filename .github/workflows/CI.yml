@@ -42,6 +42,10 @@ jobs:
             python_version: '3.7'
           - os: macos-15
             python_version: '3.7'
+          - os: macos-14
+            python_version: 'pypy-3.7'
+          - os: macos-15
+            python_version: 'pypy-3.7'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
