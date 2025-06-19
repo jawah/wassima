@@ -26,9 +26,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install pre-commit
+      - run: pip install nox
         name: Install pre-commit
-      - run: pre-commit run --all
+      - run: nox -s lint
         name: Run pre-commit checks
 
   test:
@@ -37,6 +37,11 @@ jobs:
       matrix:
         os: [ubuntu-22.04, macos-13, macos-14, macos-15, windows-latest ]
         python_version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', 'pypy-3.11']
+        exclude:
+          - os: macos-14
+            python_version: '3.7'
+          - os: macos-15
+            python_version: '3.7'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
