@@ -16,10 +16,11 @@ repos:
     # Run the formatter.
     - id: ruff-format
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.16.1
+  rev: v1.16.0
   hooks:
   -   id: mypy
       args: [--check-untyped-defs]
+      exclude: "noxfile.py"
       additional_dependencies:
         - "urllib3-future"
         - "pytest"

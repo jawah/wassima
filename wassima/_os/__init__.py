@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import sys
 import platform
+import sys
 
 # Platform detection
 IS_WINDOWS = sys.platform == "win32"
@@ -18,13 +18,13 @@ if IS_MACOS:
 
 
 if IS_WINDOWS:
-    from ._windows import root_der_certificates, certificate_revocation_lists_der
+    from ._windows import certificate_revocation_lists_der, root_der_certificates
 elif IS_MACOS and MACOS_VERSION >= (10, 15):  # type: ignore[operator]
-    from ._macos import root_der_certificates, certificate_revocation_lists_der
+    from ._macos import certificate_revocation_lists_der, root_der_certificates
 elif IS_LINUX or IS_BSD:
-    from ._linux import root_der_certificates, certificate_revocation_lists_der
+    from ._linux import certificate_revocation_lists_der, root_der_certificates
 else:
-    from ._embed import root_der_certificates, certificate_revocation_lists_der
+    from ._embed import certificate_revocation_lists_der, root_der_certificates
 
 
 __all__ = (

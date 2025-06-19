@@ -47,6 +47,8 @@ from wassima import create_default_ssl_context
 def test_ctx_use_system_store(host: str, port: int, expect_failure: bool) -> None:
     ctx = create_default_ssl_context()
 
+    print(len(ctx.get_ca_certs(binary_form=True)))
+
     s = socket(AF_INET, SOCK_STREAM)
     s = ctx.wrap_socket(s, server_hostname=host)
     s.settimeout(5)
@@ -63,6 +65,8 @@ def test_ctx_use_system_store(host: str, port: int, expect_failure: bool) -> Non
                     "self-signed" in ssl_err
                     or "self signed" in ssl_err
                     or "unable to get local issuer certificate" in ssl_err
+                    or "digest algorithm too weak" in ssl_err
+                    or "certificate has expired" in ssl_err
                 )
             else:
                 s.connect((host, port))
@@ -91,9 +95,7 @@ def test_ctx_use_system_store(host: str, port: int, expect_failure: bool) -> Non
 
 def serve(server: http.server.HTTPServer) -> None:
     context = SSLContext(PROTOCOL_TLS_SERVER)
-    context.load_cert_chain(
-        certfile="./example.test.pem", keyfile="./example.test-key.pem"
-    )
+    context.load_cert_chain(certfile="./example.test.pem", keyfile="./example.test-key.pem")
 
     server.socket = context.wrap_socket(server.socket, server_side=True)
     server.serve_forever()

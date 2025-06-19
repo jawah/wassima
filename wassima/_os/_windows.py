@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 from ssl import enum_certificates, enum_crls  # type: ignore[attr-defined]
 
 
 def root_der_certificates() -> list[bytes]:
     certificates = []
-    for cert_bytes, encoding_type, trust in enum_certificates(
-        "ROOT"
-    ) + enum_certificates("MY"):
+    for cert_bytes, encoding_type, trust in enum_certificates("ROOT") + enum_certificates("MY"):
         if not trust:
             continue
 

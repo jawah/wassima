@@ -1,7 +1,8 @@
-from pathlib import Path
-import os
-from ssl import PEM_cert_to_DER_cert
+from __future__ import annotations
 
+import os
+from pathlib import Path
+from ssl import PEM_cert_to_DER_cert
 
 # source: http://gagravarr.org/writing/openssl-certs/others.shtml
 BUNDLE_TRUST_STORE_DIRECTORIES: list[str] = [
@@ -43,10 +44,7 @@ def root_der_certificates() -> list[bytes]:
 
             extension = str(filepath).split(".")[-1]
 
-            if (
-                extension not in KNOWN_TRUST_STORE_EXTENSIONS
-                and extension.isdigit() is False
-            ):
+            if extension not in KNOWN_TRUST_STORE_EXTENSIONS and extension.isdigit() is False:
                 continue
 
             try:
@@ -61,9 +59,7 @@ def root_der_certificates() -> list[bytes]:
                     ascii_content = content.decode("ascii")
                     # Split on PEM certificate boundaries
                     pem_certs = [
-                        cert
-                        for cert in ascii_content.split("-----BEGIN CERTIFICATE-----")
-                        if cert.strip()
+                        cert for cert in ascii_content.split("-----BEGIN CERTIFICATE-----") if cert.strip()
                     ]  # Remove empty strings
 
                     for pem_cert in pem_certs:
@@ -83,7 +79,7 @@ def root_der_certificates() -> list[bytes]:
                     # Not a valid PEM certificate file
                     continue
 
-            except (IOError, OSError):
+            except OSError:
                 # Skip files we can't read
                 continue
 

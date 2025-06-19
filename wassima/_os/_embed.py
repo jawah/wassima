@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import ssl
 
 CCADB_BUNDLE: str = """# Owner: Actalis

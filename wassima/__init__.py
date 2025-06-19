@@ -10,15 +10,17 @@ from functools import lru_cache
 from threading import RLock
 
 from ._os import (
-    root_der_certificates as _root_der_certificates,
     certificate_revocation_lists_der,
+)
+from ._os import (
+    root_der_certificates as _root_der_certificates,
 )
 from ._os._embed import root_der_certificates as fallback_der_certificates
 from ._version import VERSION, __version__
 
 # Mozilla TLS recommendations for ciphers
 # General-purpose servers with a variety of clients, recommended for almost all systems.
-MOZ_INTERMEDIATE_CIPHERS: str = "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305"
+MOZ_INTERMEDIATE_CIPHERS: str = "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305"  # noqa: E501
 #: Contain user custom CAs
 _MANUALLY_REGISTERED_CA: list[bytes] = []
 #: Lock for shared register-ca

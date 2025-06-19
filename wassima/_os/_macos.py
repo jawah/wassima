@@ -1,228 +1,137 @@
 from __future__ import annotations
 
 import ctypes
-from ctypes import POINTER, byref, c_void_p, c_ulong, c_char_p, c_int32, c_long
-import ctypes.util
+from ctypes import POINTER, byref, c_int32, c_uint32, c_void_p
 
-# Load Security framework
-lib_security = ctypes.util.find_library("Security")
-lib_corefoundation = ctypes.util.find_library("CoreFoundation")
+# Load frameworks
+_core = ctypes.CDLL("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")
+_sec = ctypes.CDLL("/System/Library/Frameworks/Security.framework/Security")
 
-if lib_security is None or lib_corefoundation is None:
-    raise ImportError
-
-security = ctypes.cdll.LoadLibrary(lib_security)
-corefoundation = ctypes.cdll.LoadLibrary(lib_corefoundation)
-
-# Basic constants and types (from macOS headers)
+# Type aliases
 CFTypeRef = c_void_p
 CFArrayRef = c_void_p
 CFDataRef = c_void_p
-CFStringRef = c_void_p
+CFDictionaryRef = c_void_p
+OSStatus = c_int32
 
-# Helper for CoreFoundation release
-corefoundation.CFRelease.argtypes = [CFTypeRef]
-corefoundation.CFRelease.restype = None
+# CoreFoundation function prototypes
+_CFDictionaryCreate = _core.CFDictionaryCreate
+_CFDictionaryCreate.argtypes = [c_void_p, POINTER(c_void_p), POINTER(c_void_p), c_uint32, c_void_p, c_void_p]
+_CFDictionaryCreate.restype = CFDictionaryRef
 
+_CFArrayGetCount = _core.CFArrayGetCount
+_CFArrayGetCount.argtypes = [CFArrayRef]
+_CFArrayGetCount.restype = c_uint32
 
-# Helper to convert CFDataRef to bytes
-def cfdata_to_bytes(cfdata):
-    if not cfdata:
-        return b""
-    corefoundation.CFDataGetLength.argtypes = [CFDataRef]
-    corefoundation.CFDataGetLength.restype = c_ulong
-    corefoundation.CFDataGetBytePtr.argtypes = [CFDataRef]
-    corefoundation.CFDataGetBytePtr.restype = ctypes.POINTER(ctypes.c_ubyte)
-    length = corefoundation.CFDataGetLength(cfdata)
-    ptr = corefoundation.CFDataGetBytePtr(cfdata)
-    if not ptr:
-        return b""
-    return ctypes.string_at(ptr, length)
+_CFArrayGetValueAtIndex = _core.CFArrayGetValueAtIndex
+_CFArrayGetValueAtIndex.argtypes = [CFArrayRef, c_uint32]
+_CFArrayGetValueAtIndex.restype = CFTypeRef
 
+_CFDataGetLength = _core.CFDataGetLength
+_CFDataGetLength.argtypes = [CFDataRef]
+_CFDataGetLength.restype = c_uint32
 
-# Helper to extract DER from SecCertificateRef
-def sec_certificate_to_der(cert):
-    # SecCertificateCopyData returns a retained CFDataRef containing the DER
-    security.SecCertificateCopyData.argtypes = [c_void_p]
-    security.SecCertificateCopyData.restype = CFDataRef
-    cfdata = security.SecCertificateCopyData(cert)
-    der = cfdata_to_bytes(cfdata)
-    corefoundation.CFRelease(cfdata)
-    return der
+_CFDataGetBytePtr = _core.CFDataGetBytePtr
+_CFDataGetBytePtr.argtypes = [CFDataRef]
+_CFDataGetBytePtr.restype = ctypes.POINTER(ctypes.c_ubyte)
 
+# Security function prototypes
+_SecItemCopyMatching = _sec.SecItemCopyMatching
+_SecItemCopyMatching.argtypes = [CFDictionaryRef, POINTER(CFTypeRef)]
+_SecItemCopyMatching.restype = OSStatus
 
-# Helper to extract DER from SecCertificateRef (list)
-def sec_array_to_der_list(sec_array):
-    # CFArrayGetCount, CFArrayGetValueAtIndex
-    corefoundation.CFArrayGetCount.argtypes = [CFArrayRef]
-    corefoundation.CFArrayGetCount.restype = c_long = ctypes.c_long
-    count = corefoundation.CFArrayGetCount(sec_array)
-    corefoundation.CFArrayGetValueAtIndex.argtypes = [CFArrayRef, c_long]
-    corefoundation.CFArrayGetValueAtIndex.restype = c_void_p
-    result = []
-    for i in range(count):
-        cert = corefoundation.CFArrayGetValueAtIndex(sec_array, i)
-        der = sec_certificate_to_der(cert)
-        result.append(der)
-    return result
+_SecCertificateCopyData = _sec.SecCertificateCopyData
+_SecCertificateCopyData.argtypes = [CFTypeRef]
+_SecCertificateCopyData.restype = CFDataRef
 
+_SecTrustSettingsCopyCertificates = _sec.SecTrustSettingsCopyCertificates
+_SecTrustSettingsCopyCertificates.argtypes = [c_int32, POINTER(CFArrayRef)]
+_SecTrustSettingsCopyCertificates.restype = OSStatus
 
-# Helper: create query dictionary
-def create_query_dict(
-    class_name: str, is_root: bool | None = None, is_issuer: bool | None = None
-):
-    # Use CoreFoundation to build a CFDictionary
-    # Only relevant keys: kSecClass, kSecClassCertificate, kSecMatchLimit, kSecMatchLimitAll, kSecMatchTrustedOnly, etc.
-    # See: /System/Library/Frameworks/Security.framework/Headers/SecItem.h
-    # We'll use kSecClassCertificate, kSecMatchTrustedOnly, kSecMatchLimit, kSecMatchLimitAll, kSecMatchSubjectContains, kSecMatchIssuers, kSecReturnRef
-    # For roots, we'll filter trusted and self-signed
-    # Intermediates: trusted, not self-signed
-    # For CRLs: kSecClassCertificateRevocationList (not widely documented, but present).
+# CF callbacks & boolean constants
+_kCFTypeDictKeyCallBacks = c_void_p.in_dll(_core, "kCFTypeDictionaryKeyCallBacks")
+_kCFTypeDictValueCallBacks = c_void_p.in_dll(_core, "kCFTypeDictionaryValueCallBacks")
+_kCFBooleanTrue = c_void_p.in_dll(_core, "kCFBooleanTrue")
+# Alias for SecItem boolean
+_kSecBooleanTrue = _kCFBooleanTrue
 
-    # kSecClassCertificate
-    kCFTypeDictionaryKeyCallBacks = ctypes.c_void_p.in_dll(
-        corefoundation, "kCFTypeDictionaryKeyCallBacks"
+# SecItem constants
+_kSecClass = c_void_p.in_dll(_sec, "kSecClass")
+_kSecClassCertificate = c_void_p.in_dll(_sec, "kSecClassCertificate")
+try:
+    _kSecClassCertificateRevocationList = c_void_p.in_dll(_sec, "kSecClassCertificateRevocationList")
+except ValueError:
+    _kSecClassCertificateRevocationList = _core.CFStringCreateWithCString(
+        None, b"kSecClassCertificateRevocationList", 0x08000100
     )
-    kCFTypeDictionaryValueCallBacks = ctypes.c_void_p.in_dll(
-        corefoundation, "kCFTypeDictionaryValueCallBacks"
-    )
-
-    # CFString constants
-    def cfstr(val):
-        corefoundation.CFStringCreateWithCString.argtypes = [
-            c_void_p,
-            c_char_p,
-            c_int32,
-        ]
-        corefoundation.CFStringCreateWithCString.restype = CFStringRef
-        return corefoundation.CFStringCreateWithCString(None, val.encode(), 0)
-
-    # Predefined CFStrings
-    kSecClass = cfstr("class")
-    kSecClassCertificate = cfstr("cert")
-    kSecClassCRL = cfstr("crl")
-    kSecMatchLimit = cfstr("m_Limit")
-    kSecMatchLimitAll = cfstr("a_LimitAll")
-    kSecMatchTrustedOnly = cfstr("m_TrustedOnly")
-    kSecReturnRef = cfstr("r_Ref")
-    kSecMatchIsRoot = cfstr("m_IsRoot")
-    kSecMatchIsIssuer = cfstr("m_IsIssuer")
-
-    keys = []
-    values = []
-
-    if class_name == "cert":
-        keys.extend([kSecClass, kSecMatchLimit, kSecMatchTrustedOnly, kSecReturnRef])
-        values.extend(
-            [
-                kSecClassCertificate,
-                kSecMatchLimitAll,
-                ctypes.c_void_p(1),
-                ctypes.c_void_p(1),
-            ]
-        )
-        if is_root is not None:
-            keys.append(kSecMatchIsRoot)
-            values.append(ctypes.c_void_p(1 if is_root else 0))
-        if is_issuer is not None:
-            keys.append(kSecMatchIsIssuer)
-            values.append(ctypes.c_void_p(1 if is_issuer else 0))
-    elif class_name == "crl":
-        keys.extend([kSecClass, kSecMatchLimit, kSecReturnRef])
-        values.extend([kSecClassCRL, kSecMatchLimitAll, ctypes.c_void_p(1)])
-    else:
-        raise ValueError("Unknown class_name: %s" % class_name)
-
-    # CFDictionaryCreate(CFAllocatorRef, const void **keys, const void **values, CFIndex numValues, ...)
-    corefoundation.CFDictionaryCreate.argtypes = [
-        c_void_p,
-        POINTER(c_void_p),
-        POINTER(c_void_p),
-        c_long,
-        c_void_p,
-        c_void_p,
-    ]
-    corefoundation.CFDictionaryCreate.restype = c_void_p
-    arrtype = c_void_p * len(keys)
-    dct = corefoundation.CFDictionaryCreate(
-        None,
-        arrtype(*keys),
-        arrtype(*values),
-        len(keys),
-        kCFTypeDictionaryKeyCallBacks,
-        kCFTypeDictionaryValueCallBacks,
-    )
-    return dct
+_kSecMatchLimit = c_void_p.in_dll(_sec, "kSecMatchLimit")
+_kSecMatchLimitAll = c_void_p.in_dll(_sec, "kSecMatchLimitAll")
+_kSecMatchTrustedOnly = c_void_p.in_dll(_sec, "kSecMatchTrustedOnly")
+_kSecReturnRef = c_void_p.in_dll(_sec, "kSecReturnRef")
+_kSecReturnData = c_void_p.in_dll(_sec, "kSecReturnData")
 
 
-# Query certificates or CRLs
-def secitem_copy_matching(query):
-    # SecItemCopyMatching(CFDictionaryRef, CFTypeRef*)
-    out = c_void_p()
-    res = security.SecItemCopyMatching(query, byref(out))
+# Helper: build a CFDictionary for SecItem queries
+def _make_query(keys, values):
+    count = len(keys)
+    KeyArr = (c_void_p * count)(*keys)
+    ValArr = (c_void_p * count)(*values)
+    return _CFDictionaryCreate(None, KeyArr, ValArr, count, _kCFTypeDictKeyCallBacks, _kCFTypeDictValueCallBacks)
 
-    if res != 0:  # errSecSuccess
-        corefoundation.CFRelease(query)
-        raise OSError(f"SecItemCopyMatching failed: {res}")
 
-    corefoundation.CFRelease(query)
+# Helper: perform SecItemCopyMatching and return CFTypeRef list
+def _query_refs(query):
+    result = CFTypeRef()
+    status = _SecItemCopyMatching(query, byref(result))
+    if status != 0:
+        raise OSError(status, "SecItemCopyMatching failed")
+    arr = CFArrayRef(result.value)
+    cnt = _CFArrayGetCount(arr)
+    return [_CFArrayGetValueAtIndex(arr, i) for i in range(cnt)]
 
-    return out.value
+
+# Helper: convert CFDataRef to Python bytes
+def _data_to_bytes(data_ref):
+    length = _CFDataGetLength(data_ref)
+    ptr = _CFDataGetBytePtr(data_ref)
+    return bytes(ctypes.string_at(ptr, length))
+
+
+# Public: retrieve DER-encoded trusted certificates
 
 
 def root_der_certificates() -> list[bytes]:
     """
-    Returns a list of DER-encoded trusted root CA certificates (self-signed) from the system keychain.
+    Returns a list of DER-encoded certificates trusted for TLS server auth,
+    including system roots and any user/admin trust settings.
     """
-    query = create_query_dict("cert", is_issuer=True)
-    result_array = secitem_copy_matching(query)
-
-    if not result_array:
-        return []
-
-    ders = sec_array_to_der_list(result_array)
-
-    corefoundation.CFRelease(result_array)
-
+    ders = []
+    # Iterate trust domains: 0 = system, 1 = user, 2 = admin
+    for domain in (0, 1, 2):
+        cert_array = CFArrayRef()
+        status = _SecTrustSettingsCopyCertificates(domain, byref(cert_array))
+        if status != 0:
+            continue
+        count = _CFArrayGetCount(cert_array)
+        for i in range(count):
+            cert_ref = _CFArrayGetValueAtIndex(cert_array, i)
+            ders.append(_data_to_bytes(_SecCertificateCopyData(cert_ref)))
     return ders
+
+
+# Public: retrieve DER-encoded CRLs
 
 
 def certificate_revocation_lists_der() -> list[bytes]:
     """
-    Returns a list of DER-encoded CRLs from the system keychain.
+    Returns all CRLs found in system and user keychains, in DER.
     """
-    query = create_query_dict("crl")
-
-    result_array = secitem_copy_matching(query)
-
-    # result_array is a CFArrayRef of SecCertificateRevocationListRef
-    corefoundation.CFArrayGetCount.argtypes = [CFArrayRef]
-    corefoundation.CFArrayGetCount.restype = c_long = ctypes.c_long
-
-    count = corefoundation.CFArrayGetCount(result_array)
-
-    corefoundation.CFArrayGetValueAtIndex.argtypes = [CFArrayRef, c_long]
-    corefoundation.CFArrayGetValueAtIndex.restype = c_void_p
-
-    # CRL objects can be converted to DER using SecCertificateRevocationListCopyData
-    security.SecCertificateRevocationListCopyData.argtypes = [c_void_p]
-    security.SecCertificateRevocationListCopyData.restype = CFDataRef
-
-    crls = []
-
-    for i in range(count):
-        crl_ref = corefoundation.CFArrayGetValueAtIndex(result_array, i)
-        crl_data = security.SecCertificateRevocationListCopyData(crl_ref)
-        der = cfdata_to_bytes(crl_data)
-        corefoundation.CFRelease(crl_data)
-        crls.append(der)
-
-    corefoundation.CFRelease(result_array)
-
-    return crls
-
-
-__all__ = (
-    "root_der_certificates",
-    "certificate_revocation_lists_der",
-)
+    query = _make_query(
+        keys=[_kSecClass, _kSecMatchLimit, _kSecReturnData],
+        values=[_kSecClassCertificateRevocationList, _kSecMatchLimitAll, _kSecBooleanTrue],
+    )
+    try:
+        data_refs = _query_refs(query)
+        return [_data_to_bytes(d) for d in data_refs]
+    except OSError:
+        return []

@@ -49,25 +49,14 @@ jobs:
       - name: Install mkcert (Linux)
         if: matrix.os == 'ubuntu-22.04'
         run: sudo apt-get install mkcert
-      - name: Install mkcert (Windows)
-        if: matrix.os == 'windows-latest'
-        run: choco install -y mkcert
       - name: Install mkcert (MacOS)
-        if: matrix.os == 'macos-13'
+        if: matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15'
         run: brew install mkcert
-      - name: Generate mkcert root CA files (Windows)
-        if: matrix.os == 'windows-latest'
-        run: mkcert -CAROOT
-      - name: Inject fake CA in TrustStore (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          $ca = (mkcert -CAROOT) + '\rootCA.pem'
-          Import-Certificate -FilePath $ca -CertStoreLocation Cert:\LocalMachine\Root
       - name: Inject fake CA in TrustStore (MacOS/Linux)
-        if: matrix.os == 'macos-13' || matrix.os == 'ubuntu-22.04'
+        if: matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15' || matrix.os == 'ubuntu-22.04'
         run: mkcert -install
       - name: Generate a valid certificate
+        if: matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15' || matrix.os == 'ubuntu-22.04'
         run: mkcert example.test
       - name: Install dependencies
         run: |

@@ -1,0 +1,22 @@
+[run]
+source =
+    wassima
+disable_warnings = no-sysmon
+
+[paths]
+source =
+    wassima
+
+[report]
+exclude_lines =
+    except ModuleNotFoundError:
+    except ImportError:
+    pass
+    import
+    raise NotImplementedError
+    .* # Platform-specific.*
+    .*:.* # Python \d.*
+    .* # Abstract
+    .* # Defensive:
+    if (?:typing.)?TYPE_CHECKING:
+    ^\s*?\.\.\.\s*$
