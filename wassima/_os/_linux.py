@@ -37,17 +37,20 @@ def root_der_certificates() -> list[bytes]:
             continue
 
         # Use rglob to recursively search all files in directory and subdirectories
-        for filepath in Path(directory).rglob('*'):
+        for filepath in Path(directory).rglob("*"):
             if not filepath.is_file():  # Skip directories
                 continue
 
             extension = str(filepath).split(".")[-1]
 
-            if extension not in KNOWN_TRUST_STORE_EXTENSIONS and extension.isdigit() is False:
+            if (
+                extension not in KNOWN_TRUST_STORE_EXTENSIONS
+                and extension.isdigit() is False
+            ):
                 continue
 
             try:
-                with open(filepath, 'rb') as f:
+                with open(filepath, "rb") as f:
                     content = f.read()
 
                 if not content:  # Skip empty files
@@ -55,16 +58,19 @@ def root_der_certificates() -> list[bytes]:
 
                 # Try to handle the file as PEM certificate(s) first
                 try:
-                    ascii_content = content.decode('ascii')
+                    ascii_content = content.decode("ascii")
                     # Split on PEM certificate boundaries
-                    pem_certs = [cert for cert in ascii_content.split('-----BEGIN CERTIFICATE-----')
-                                 if cert.strip()]  # Remove empty strings
+                    pem_certs = [
+                        cert
+                        for cert in ascii_content.split("-----BEGIN CERTIFICATE-----")
+                        if cert.strip()
+                    ]  # Remove empty strings
 
                     for pem_cert in pem_certs:
                         try:
                             # Restore the header if it's not the first cert
-                            if not pem_cert.startswith('-----BEGIN CERTIFICATE-----'):
-                                pem_cert = '-----BEGIN CERTIFICATE-----' + pem_cert
+                            if not pem_cert.startswith("-----BEGIN CERTIFICATE-----"):
+                                pem_cert = "-----BEGIN CERTIFICATE-----" + pem_cert
 
                             der_cert = PEM_cert_to_DER_cert(pem_cert)
                             if der_cert not in certificates:

@@ -326,7 +326,7 @@ E2Efv4WstK2tBZQIgx51F9NxO5NQI1mg7TyRVJ12AMXDuDjb
 -----END CERTIFICATE-----
 
 # Owner: Autoridad de Certificacion Firmaprofesional
-# Organization: 
+# Organization:
 # Common Name: Autoridad de Certificacion Firmaprofesional CIF A62634068
 # SHA-256: 57DE0583EFD2B26E0361DA99DA9DF4648DEF7EE8441C3B728AFA9BCDE0F9B26A
 -----BEGIN CERTIFICATE-----
@@ -4211,6 +4211,7 @@ Sw==
 
 """
 
+
 def root_der_certificates() -> list[bytes]:
     certificates: list[bytes] = []
 
@@ -4226,9 +4227,7 @@ def root_der_certificates() -> list[bytes]:
 
             pem_reconstructed = "".join([chunk[start_marker:], boundary])
 
-            certificates.append(
-                ssl.PEM_cert_to_DER_cert(pem_reconstructed)
-            )
+            certificates.append(ssl.PEM_cert_to_DER_cert(pem_reconstructed))
 
     return certificates
 

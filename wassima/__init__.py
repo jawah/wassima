@@ -1,13 +1,19 @@
 """
-the Wassima library is a simple wrapper around the crate rustls-native-certs.
+the Wassima library is a simple library.
 It aims to provide a pythonic way to retrieve root CAs from your system without any difficulties or hazmat.
 """
+
 from __future__ import annotations
 
 import ssl
 from functools import lru_cache
 from threading import RLock
 
+from ._os import (
+    root_der_certificates as _root_der_certificates,
+    certificate_revocation_lists_der,
+)
+from ._os._embed import root_der_certificates as fallback_der_certificates
 from ._version import VERSION, __version__
 
 # Mozilla TLS recommendations for ciphers
@@ -17,10 +23,6 @@ MOZ_INTERMEDIATE_CIPHERS: str = "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-
 _MANUALLY_REGISTERED_CA: list[bytes] = []
 #: Lock for shared register-ca
 _USER_APPEND_CA_LOCK = RLock()
-
-
-from ._os import root_der_certificates as _root_der_certificates, certificate_revocation_lists_der
-from ._os._embed import root_der_certificates as fallback_der_certificates
 
 
 @lru_cache()
@@ -108,4 +110,5 @@ __all__ = (
     "register_ca",
     "__version__",
     "VERSION",
+    "certificate_revocation_lists_der",
 )

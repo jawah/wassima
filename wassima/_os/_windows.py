@@ -1,9 +1,11 @@
-from ssl import enum_certificates, enum_crls
+from ssl import enum_certificates, enum_crls  # type: ignore[attr-defined]
 
 
 def root_der_certificates() -> list[bytes]:
     certificates = []
-    for (cert_bytes, encoding_type, trust) in enum_certificates("ROOT") + enum_certificates("MY"):
+    for cert_bytes, encoding_type, trust in enum_certificates(
+        "ROOT"
+    ) + enum_certificates("MY"):
         if not trust:
             continue
 
@@ -23,7 +25,7 @@ def root_der_certificates() -> list[bytes]:
 def certificate_revocation_lists_der() -> list[bytes]:
     crls = []
 
-    for (cert_bytes, encoding_type, trust) in enum_crls("ROOT") + enum_crls("MY"):
+    for cert_bytes, encoding_type, trust in enum_crls("ROOT") + enum_crls("MY"):
         crls.append(cert_bytes)  # CRLs are always DER-encoded
 
     return crls

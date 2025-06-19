@@ -89,7 +89,7 @@ def test_ctx_use_system_store(host: str, port: int, expect_failure: bool) -> Non
     s.close()
 
 
-def serve(server: http.server.HTTPServer):
+def serve(server: http.server.HTTPServer) -> None:
     context = SSLContext(PROTOCOL_TLS_SERVER)
     context.load_cert_chain(
         certfile="./example.test.pem", keyfile="./example.test-key.pem"

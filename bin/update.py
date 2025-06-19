@@ -31,9 +31,11 @@ CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=
 -----END CERTIFICATE-----
 """
 
-CCADB_UPSTREAM_CSV = "https://ccadb.my.salesforce-sites.com/mozilla/IncludedCACertificateReportPEMCSV"
+CCADB_UPSTREAM_CSV = (
+    "https://ccadb.my.salesforce-sites.com/mozilla/IncludedCACertificateReportPEMCSV"
+)
 
-PYTHON_SRC_HEADER = "import ssl\n\nCCADB_BUNDLE: str = \"\"\""
+PYTHON_SRC_HEADER = 'import ssl\n\nCCADB_BUNDLE: str = """'
 PYTHON_SRC_FOOTER = """def root_der_certificates() -> list[bytes]:
     certificates: list[bytes] = []
 
@@ -59,6 +61,7 @@ PYTHON_SRC_FOOTER = """def root_der_certificates() -> list[bytes]:
 def certificate_revocation_lists_der() -> list[bytes]:
     return []
 """
+
 
 @dataclass
 class CertificateRecord:
@@ -105,12 +108,16 @@ def decode_stream_to_unicode(response: urllib3.HTTPResponse) -> typing.Iterator[
         yield data.decode()
 
 
-def parse_ccadb_csv(response: urllib3.HTTPResponse) -> typing.Iterator[CertificateRecord]:
+def parse_ccadb_csv(
+    response: urllib3.HTTPResponse,
+) -> typing.Iterator[CertificateRecord]:
     for row in csv.DictReader(decode_stream_to_unicode(response)):
         yield CertificateRecord(
             owner=row["Owner"],
             certificate_issuer_organization=row["Certificate Issuer Organization"],
-            certificate_issuer_organizational_unit=row["Certificate Issuer Organizational Unit"],
+            certificate_issuer_organizational_unit=row[
+                "Certificate Issuer Organizational Unit"
+            ],
             common_name_or_certificate_name=row["Common Name or Certificate Name"],
             certificate_serial_number=row["Certificate Serial Number"],
             sha256_fingerprint=row["SHA-256 Fingerprint"],
@@ -125,7 +132,9 @@ def parse_ccadb_csv(response: urllib3.HTTPResponse) -> typing.Iterator[Certifica
             ev_policy_oids=row["EV Policy OID(s)"],
             approval_bug=row["Approval Bug"],
             nss_release_when_first_included=row["NSS Release When First Included"],
-            firefox_release_when_first_included=row["Firefox Release When First Included"],
+            firefox_release_when_first_included=row[
+                "Firefox Release When First Included"
+            ],
             test_website_valid=row["Test Website - Valid"],
             test_website_expired=row["Test Website - Expired"],
             test_website_revoked=row["Test Website - Revoked"],
@@ -133,8 +142,12 @@ def parse_ccadb_csv(response: urllib3.HTTPResponse) -> typing.Iterator[Certifica
             company_website=row["Company Website"],
             geographic_focus=row["Geographic Focus"],
             certificate_policy_cp=row["Certificate Policy (CP)"],
-            certification_practice_statement_cps=row["Certification Practice Statement (CPS)"],
-            certificate_practice_policy_statement_cp_cps=row["Certificate Practice & Policy Statement (CP/CPS)"],
+            certification_practice_statement_cps=row[
+                "Certification Practice Statement (CPS)"
+            ],
+            certificate_practice_policy_statement_cp_cps=row[
+                "Certificate Practice & Policy Statement (CP/CPS)"
+            ],
             standard_audit=row["Standard Audit"],
             netsec_audit=row["NetSec Audit"],
             tls_br_audit=row["TLS BR Audit"],
@@ -148,7 +161,6 @@ def parse_ccadb_csv(response: urllib3.HTTPResponse) -> typing.Iterator[Certifica
 
 
 if __name__ == "__main__":
-
     to_be_inserted_ca: list[CertificateRecord] = []
 
     expired_count = 0
@@ -162,7 +174,7 @@ if __name__ == "__main__":
             CCADB_UPSTREAM_CSV,
             redirect=False,
             retries=False,
-            preload_content=False
+            preload_content=False,
         )
 
         assert resp.status == 200
@@ -171,21 +183,26 @@ if __name__ == "__main__":
         current_date = datetime.now(tz=UTC)
 
         for ca in parse_ccadb_csv(resp):
-
             # CHECKS
             # 1) Eligible for websites (server auth)
             # 2) Within dates (i.e. not expired, currently valid)
             # 3) Not invalid for TLS soon
 
-            print(f"> Assert if '{ca.common_name_or_certificate_name}' can be inserted in trust store")
+            print(
+                f"> Assert if '{ca.common_name_or_certificate_name}' can be inserted in trust store"
+            )
 
             if "websites" not in ca.trust_bits.lower():
                 unsuitable_trust_bit_count += 1
                 print("\t>! Not trusted for SERVER AUTH")
                 continue
 
-            valid_from = datetime.fromisoformat(f"{ca.valid_from_gmt.replace('.', '-')}T00:00:00+00:00")
-            valid_to = datetime.fromisoformat(f"{ca.valid_to_gmt.replace('.', '-')}T00:00:00+00:00")
+            valid_from = datetime.fromisoformat(
+                f"{ca.valid_from_gmt.replace('.', '-')}T00:00:00+00:00"
+            )
+            valid_to = datetime.fromisoformat(
+                f"{ca.valid_to_gmt.replace('.', '-')}T00:00:00+00:00"
+            )
 
             if valid_from > current_date:
                 not_yet_valid_count += 1
@@ -198,7 +215,9 @@ if __name__ == "__main__":
                 continue
 
             if ca.distrust_for_tls_after_date:
-                no_longer_tls_acceptable_after = datetime.fromisoformat(f"{ca.distrust_for_tls_after_date.replace('.', '-')}T00:00:00+00:00")
+                no_longer_tls_acceptable_after = datetime.fromisoformat(
+                    f"{ca.distrust_for_tls_after_date.replace('.', '-')}T00:00:00+00:00"
+                )
 
                 # there is a grace period of 398 days
                 # This grace period allows extant certificates issued before the distrust date to
@@ -214,13 +233,9 @@ if __name__ == "__main__":
             to_be_inserted_ca.append(ca)
 
     with open("../wassima/_os/_embed.py", "w") as fp:
-
-        fp.write(
-            PYTHON_SRC_HEADER
-        )
+        fp.write(PYTHON_SRC_HEADER)
 
         for ca in to_be_inserted_ca:
-
             fp.write(
                 f"# Owner: {ca.owner}\n# Organization: {ca.certificate_issuer_organization}\n# Common Name: {ca.common_name_or_certificate_name}\n# SHA-256: {ca.sha256_fingerprint}\n"
             )
@@ -228,11 +243,9 @@ if __name__ == "__main__":
             fp.write(ca.pem_info[1:-1].replace("\\n", "\n"))
             fp.write("\n\n")
 
-        fp.write("\"\"\"\n\n")
+        fp.write('"""\n\n')
 
-        fp.write(
-            PYTHON_SRC_FOOTER
-        )
+        fp.write(PYTHON_SRC_FOOTER)
 
     print(f"> {len(to_be_inserted_ca)} Trust Anchors Saved!")
     print(f"> {expired_count} expired CAs")
