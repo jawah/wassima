@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - release-2.0
     tags:
       - '*'
   workflow_dispatch:
@@ -48,6 +49,9 @@ jobs:
       - name: Install mkcert (Linux)
         if: matrix.os == 'ubuntu-22.04'
         run: sudo apt-get install mkcert
+      - name: Install mkcert (Windows)
+        if: matrix.os == 'windows-latest'
+        run: choco install -y mkcert
       - name: Install mkcert (MacOS)
         if: matrix.os == 'macos-13'
         run: brew install mkcert
@@ -70,11 +74,11 @@ jobs:
           pip install nox
       - name: Run tests
         run: |
-          nox -s "test-${{ startsWith(matrix.python-version, 'pypy') && 'pypy' || matrix.python-version }}"
+          nox -s "test-${{ startsWith(matrix.python_version, 'pypy') && 'pypy' || matrix.python_version }}"
       - name: "Upload artifact"
         uses: "actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1"
         with:
-          name: coverage-data-${{ matrix.os }}-${{ matrix.nox-session }}-${{ matrix.python-version }}-${{ matrix.traefik-server }}
+          name: coverage-data-${{ matrix.os }}-${{ matrix.python_version }}
           path: ".coverage.*"
           include-hidden-files: true
           if-no-files-found: error
