@@ -35,6 +35,10 @@ _CFDataGetBytePtr = _core.CFDataGetBytePtr
 _CFDataGetBytePtr.argtypes = [CFDataRef]
 _CFDataGetBytePtr.restype = ctypes.POINTER(ctypes.c_ubyte)
 
+_CFRelease = _core.CFRelease
+_CFRelease.argtypes = [c_void_p]
+_CFRelease.restype = None
+
 # Security function prototypes
 _SecItemCopyMatching = _sec.SecItemCopyMatching
 _SecItemCopyMatching.argtypes = [CFDictionaryRef, POINTER(CFTypeRef)]
@@ -52,7 +56,6 @@ _SecTrustSettingsCopyCertificates.restype = OSStatus
 _kCFTypeDictKeyCallBacks = c_void_p.in_dll(_core, "kCFTypeDictionaryKeyCallBacks")
 _kCFTypeDictValueCallBacks = c_void_p.in_dll(_core, "kCFTypeDictionaryValueCallBacks")
 _kCFBooleanTrue = c_void_p.in_dll(_core, "kCFBooleanTrue")
-# Alias for SecItem boolean
 _kSecBooleanTrue = _kCFBooleanTrue
 
 # SecItem constants
@@ -79,52 +82,69 @@ def _make_query(keys, values):
     return _CFDictionaryCreate(None, KeyArr, ValArr, count, _kCFTypeDictKeyCallBacks, _kCFTypeDictValueCallBacks)
 
 
-# Helper: perform SecItemCopyMatching and return CFTypeRef list
+# Helper: perform SecItemCopyMatching and return CFTypeRef list with CFRelease
+
+
 def _query_refs(query):
     result = CFTypeRef()
     status = _SecItemCopyMatching(query, byref(result))
     if status != 0:
         raise OSError(status, "SecItemCopyMatching failed")
-    arr = CFArrayRef(result.value)
-    cnt = _CFArrayGetCount(arr)
-    return [_CFArrayGetValueAtIndex(arr, i) for i in range(cnt)]
+    # result now holds a CFArrayRef pointer
+    arr_ptr = result.value
+    cnt = _CFArrayGetCount(CFArrayRef(arr_ptr))
+    items = [_CFArrayGetValueAtIndex(CFArrayRef(arr_ptr), i) for i in range(cnt)]
+    # release the CFArrayRef
+    _CFRelease(arr_ptr)
+    return items
 
 
-# Helper: convert CFDataRef to Python bytes
+# Convert CFDataRef to Python bytes with CFRelease
+
+
 def _data_to_bytes(data_ref):
     length = _CFDataGetLength(data_ref)
     ptr = _CFDataGetBytePtr(data_ref)
-    return bytes(ctypes.string_at(ptr, length))
+    data = bytes(ctypes.string_at(ptr, length))
+    _CFRelease(data_ref)
+    return data
 
 
 # Public: retrieve DER-encoded trusted certificates
-
-
 def root_der_certificates() -> list[bytes]:
     """
     Returns a list of DER-encoded certificates trusted for TLS server auth,
-    including system roots and any user/admin trust settings.
+    covering system roots, admin, user trust settings, and personal CAs.
     """
     ders = []
-    # Iterate trust domains: 0 = system, 1 = user, 2 = admin
+    # 1) System/user/admin trust settings
     for domain in (0, 1, 2):
         cert_array = CFArrayRef()
         status = _SecTrustSettingsCopyCertificates(domain, byref(cert_array))
-        if status != 0:
-            continue
-        count = _CFArrayGetCount(cert_array)
-        for i in range(count):
-            cert_ref = _CFArrayGetValueAtIndex(cert_array, i)
-            ders.append(_data_to_bytes(_SecCertificateCopyData(cert_ref)))
+        if status == 0:
+            cnt = _CFArrayGetCount(cert_array)
+            for i in range(cnt):
+                cert_ref = _CFArrayGetValueAtIndex(cert_array, i)
+                ders.append(_data_to_bytes(_SecCertificateCopyData(cert_ref)))
+            _CFRelease(cert_array)
+    # 2) Personal CA certificates from keychain marked trusted
+    query = _make_query(
+        keys=[_kSecClass, _kSecMatchLimit, _kSecMatchTrustedOnly, _kSecReturnRef],
+        values=[_kSecClassCertificate, _kSecMatchLimitAll, _kSecBooleanTrue, _kSecReturnRef],
+    )
+    try:
+        cert_refs = _query_refs(query)
+        for c in cert_refs:
+            ders.append(_data_to_bytes(_SecCertificateCopyData(c)))
+    except OSError:
+        pass
     return ders
 
 
 # Public: retrieve DER-encoded CRLs
-
-
 def certificate_revocation_lists_der() -> list[bytes]:
     """
-    Returns all CRLs found in system and user keychains, in DER.
+    Returns all certificate revocation lists (CRLs) found in system and user keychains, in DER.
     """
     query = _make_query(
         keys=[_kSecClass, _kSecMatchLimit, _kSecReturnData],
