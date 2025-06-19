@@ -3,6 +3,18 @@
 All notable changes to wassima will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2.0.0 (2025-06-??)
+
+### Removed
+- Constant `RUSTLS_LOADED`.
+- Native Rust extension in favor of a pure Python solution.
+- Optional dependency on Certifi.
+- Support for native trust store with MacOS < 10.15 (early 2019 release).
+
+### Added
+- `certificate_revocation_lists_der` function that works with Windows and MacOS.
+- Integrated CA bundle to fallback on when no "official" trust store can be loaded.
+
 ## 1.2.2 (2025-03-07)
 
 ### Added
