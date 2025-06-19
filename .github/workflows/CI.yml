@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-13, windows-latest ]
+        os: [ubuntu-22.04, macos-13, macos-14, macos-15, windows-latest ]
         python_version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', 'pypy-3.11']
     runs-on: ${{ matrix.os }}
     steps:
@@ -51,213 +51,73 @@ jobs:
       - name: Install mkcert (MacOS)
         if: matrix.os == 'macos-13'
         run: brew install mkcert
-      - name: Inject fake CA in TrustStore
+      - name: Generate mkcert root CA files (Windows)
+        if: matrix.os == 'windows-latest'
+        run: mkcert -CAROOT
+      - name: Inject fake CA in TrustStore (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $ca = (mkcert -CAROOT) + '\rootCA.pem'
+          Import-Certificate -FilePath $ca -CertStoreLocation Cert:\LocalMachine\Root
+      - name: Inject fake CA in TrustStore (MacOS/Linux)
         if: matrix.os == 'macos-13' || matrix.os == 'ubuntu-22.04'
         run: mkcert -install
       - name: Generate a valid certificate
-        if: matrix.os == 'macos-13' || matrix.os == 'ubuntu-22.04'
         run: mkcert example.test
-      - name: Build wheels (Unix, Linux)
-        if: matrix.os != 'windows-latest'
-        uses: PyO3/maturin-action@v1
-        env:
-          UNSAFE_PYO3_SKIP_VERSION_CHECK: 1
+      - name: Install dependencies
+        run: |
+          pip install nox
+      - name: Run tests
+        run: |
+          nox -s "test-${{ startsWith(matrix.python-version, 'pypy') && 'pypy' || matrix.python-version }}"
+      - name: "Upload artifact"
+        uses: "actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1"
         with:
-          args: --release --out dist --interpreter ${{ matrix.python_version }}
-          sccache: 'true'
-          manylinux: auto
-          docker-options: -e UNSAFE_PYO3_SKIP_VERSION_CHECK=1
-      - name: Build wheels (NT)
-        if: matrix.os == 'windows-latest'
-        uses: PyO3/maturin-action@v1
-        env:
-          UNSAFE_PYO3_SKIP_VERSION_CHECK: 1
-        with:
-          args: --release --out dist
-          sccache: 'true'
-          target: x64
-      - run: pip install --find-links=./dist wassima
-        name: Install built package
-      - name: Ensure test target (NT)
-        if: matrix.os == 'windows-latest'
-        run: Remove-Item -Path wassima -Force -Recurse
-      - name: Ensure test target (Linux, Unix)
-        if: matrix.os != 'windows-latest'
-        run: rm -fR wassima
-      - run: pytest tests/
-        name: Run tests
+          name: coverage-data-${{ matrix.os }}-${{ matrix.nox-session }}-${{ matrix.python-version }}-${{ matrix.traefik-server }}
+          path: ".coverage.*"
+          include-hidden-files: true
+          if-no-files-found: error
 
-  linux:
-    runs-on: ubuntu-22.04
-    needs:
-      - test
-      - lint
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [x86_64, aarch64, armv7, s390x, ppc64le, ppc64, i686]
-        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', 'pypy-3.11', '3.13t']
-        manylinux: ['auto', 'musllinux_1_1']
-        exclude:
-          - manylinux: musllinux_1_1
-            target: s390x
-          - manylinux: musllinux_1_1
-            target: ppc64
-          - manylinux: musllinux_1_1
-            target: ppc64le
-
+  coverage:
+    if: always()
+    runs-on: "ubuntu-latest"
+    needs: test
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        if: matrix.python_version != '3.13t'
-        with:
-          python-version: ${{ matrix.python_version }}
-      - uses: Quansight-Labs/setup-python@v5
-        if: matrix.python_version == '3.13t'
-        with:
-          python-version: '3.13t'
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        env:
-          UNSAFE_PYO3_SKIP_VERSION_CHECK: 1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist --interpreter ${{ matrix.python_version }}
-          sccache: 'true'
-          manylinux: ${{ matrix.manylinux }}
-          docker-options: -e UNSAFE_PYO3_SKIP_VERSION_CHECK=1
-      - name: Upload wheels
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
-        with:
-          name: wheels-linux-${{ matrix.manylinux }}-${{ matrix.target }}-${{ matrix.python_version }}
-          path: dist/*.whl
+      - name: "Checkout repository"
+        uses: "actions/checkout@d632683dd7b4114ad314bca15554477dd762a938"
 
-  windows:
-    needs:
-      - test
-      - lint
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [x64, aarch64, x86]
-        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', 'pypy-3.11', '3.13t']
-        exclude:
-          - target: aarch64
-            python_version: 'pypy-3.7'
-          - target: aarch64
-            python_version: 'pypy-3.8'
-          - target: aarch64
-            python_version: 'pypy-3.9'
-          - target: aarch64
-            python_version: 'pypy-3.10'
-          - target: aarch64
-            python_version: 'pypy-3.11'
-          - target: x86
-            python_version: 'pypy-3.7'
-          - target: x86
-            python_version: 'pypy-3.8'
-          - target: x86
-            python_version: 'pypy-3.9'
-          - target: x86
-            python_version: 'pypy-3.10'
-          - target: x86
-            python_version: 'pypy-3.11'
-          - target: x86
-            python_version: '3.13t'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        if: matrix.python_version != '3.13t'
+      - name: "Setup Python"
+        uses: "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065"
         with:
-          python-version: ${{ matrix.python_version }}
-          architecture: ${{ matrix.target == 'x86' && 'x86' || 'x64' }}
-      - uses: Quansight-Labs/setup-python@v5
-        if: matrix.python_version == '3.13t' && matrix.target == 'x64'
-        with:
-          python-version: '3.13t'
-          architecture: x64
-      - name: Build wheels (normal)
-        uses: PyO3/maturin-action@v1
-        if: matrix.python_version != '3.13t' || matrix.target == 'x64'
-        env:
-          UNSAFE_PYO3_SKIP_VERSION_CHECK: 1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist
-          sccache: 'false'
-      - name: Build wheels (workaround 3.13t arm64)
-        uses: PyO3/maturin-action@v1
-        if: matrix.python_version == '3.13t' && matrix.target == 'aarch64'
-        env:
-          PYO3_CROSS: 1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist -i 3.13t
-          sccache: 'false'
-      - name: Upload wheels
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
-        with:
-          name: wheels-windows-${{ matrix.target }}-${{ matrix.python_version }}
-          path: dist/*.whl
+          python-version: "3.x"
 
-  macos:
-    needs:
-      - test
-      - lint
-    runs-on: macos-13
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [universal2]
-        python_version: ['3.10', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', 'pypy-3.11', '3.13t']
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        if: matrix.python_version != '3.13t'
-        with:
-          python-version: ${{ matrix.python_version }}
-      - uses: Quansight-Labs/setup-python@v5
-        if: matrix.python_version == '3.13t'
-        with:
-          python-version: '3.13t'
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        env:
-          UNSAFE_PYO3_SKIP_VERSION_CHECK: 1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist
-          sccache: 'true'
-      - name: Upload wheels
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
-        with:
-          name: wheels-macos-${{ matrix.target }}-${{ matrix.python_version }}
-          path: dist/*.whl
+      - name: "Install coverage"
+        run: "python -m pip install --upgrade coverage"
 
-  sdist:
-    needs:
-      - test
-      - lint
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build sdist
-        uses: PyO3/maturin-action@v1
+      - name: "Download artifact"
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          command: sdist
-          args: --out dist
-      - name: Upload sdist
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+          pattern: coverage-data*
+          merge-multiple: true
+
+      - name: "Combine & check coverage"
+        run: |
+          python -m coverage combine
+          python -m coverage html --skip-covered --skip-empty
+          python -m coverage report --ignore-errors --show-missing --fail-under=75
+
+      - name: "Upload report"
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
-          name: wheels-sdist
-          path: dist/*.tar.gz
+          name: coverage-report
+          path: htmlcov
 
   universal:
     needs:
-      - test
+      - coverage
       - lint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -265,20 +125,18 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: python -m pip install build wheel
-      - name: Use fallback pyproject.toml
-        run: rm -f pyproject.toml && mv pyproject.fb.toml pyproject.toml
       - name: Build fallback wheel
         run: python -m build
       - name: Upload sdist
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
           name: wheels-universal
-          path: dist/*.whl
+          path: dist/*
 
   checksum:
     name: compute hashes
-    runs-on: ubuntu-22.04
-    needs: [linux, windows, macos, sdist, universal]
+    runs-on: ubuntu-latest
+    needs: universal
     outputs:
       hashes: ${{ steps.compute.outputs.hashes }}
     steps:
@@ -312,7 +170,7 @@ jobs:
 
   release:
     name: release
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: provenance
     environment: pypi
