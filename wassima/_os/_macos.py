@@ -35,10 +35,6 @@ _CFDataGetBytePtr = _core.CFDataGetBytePtr
 _CFDataGetBytePtr.argtypes = [CFDataRef]
 _CFDataGetBytePtr.restype = ctypes.POINTER(ctypes.c_ubyte)
 
-_CFRelease = _core.CFRelease
-_CFRelease.argtypes = [c_void_p]
-_CFRelease.restype = None
-
 # Security function prototypes
 _SecItemCopyMatching = _sec.SecItemCopyMatching
 _SecItemCopyMatching.argtypes = [CFDictionaryRef, POINTER(CFTypeRef)]
@@ -75,38 +71,41 @@ _kSecReturnData = c_void_p.in_dll(_sec, "kSecReturnData")
 
 
 # Helper: build a CFDictionary for SecItem queries
-def _make_query(keys, values):
+def _make_query(keys: list[c_void_p], values: list[c_void_p]) -> CFDictionaryRef:
     count = len(keys)
     KeyArr = (c_void_p * count)(*keys)
     ValArr = (c_void_p * count)(*values)
-    return _CFDictionaryCreate(None, KeyArr, ValArr, count, _kCFTypeDictKeyCallBacks, _kCFTypeDictValueCallBacks)
+    return _CFDictionaryCreate(  # type: ignore[no-any-return]
+        None,
+        KeyArr,
+        ValArr,
+        count,
+        _kCFTypeDictKeyCallBacks,
+        _kCFTypeDictValueCallBacks,
+    )
 
 
-# Helper: perform SecItemCopyMatching and return CFTypeRef list with CFRelease
+# Helper: perform SecItemCopyMatching and return CFTypeRef list
 
 
-def _query_refs(query):
+def _query_refs(query: CFDictionaryRef) -> list[CFTypeRef]:
     result = CFTypeRef()
     status = _SecItemCopyMatching(query, byref(result))
     if status != 0:
         raise OSError(status, "SecItemCopyMatching failed")
-    # result now holds a CFArrayRef pointer
-    arr_ptr = result.value
-    cnt = _CFArrayGetCount(CFArrayRef(arr_ptr))
-    items = [_CFArrayGetValueAtIndex(CFArrayRef(arr_ptr), i) for i in range(cnt)]
-    # release the CFArrayRef
-    _CFRelease(arr_ptr)
+    array_ref = CFArrayRef(result.value)
+    count = _CFArrayGetCount(array_ref)
+    items = [_CFArrayGetValueAtIndex(array_ref, i) for i in range(count)]
+    # Note: No CFRelease() calls to avoid premature deallocation
     return items
 
 
-# Convert CFDataRef to Python bytes with CFRelease
-
-
-def _data_to_bytes(data_ref):
+# Convert CFDataRef to Python bytes
+def _data_to_bytes(data_ref: c_void_p) -> bytes:
     length = _CFDataGetLength(data_ref)
     ptr = _CFDataGetBytePtr(data_ref)
     data = bytes(ctypes.string_at(ptr, length))
-    _CFRelease(data_ref)
+    # Note: No CFRelease() here
     return data
 
 
@@ -122,11 +121,10 @@ def root_der_certificates() -> list[bytes]:
         cert_array = CFArrayRef()
         status = _SecTrustSettingsCopyCertificates(domain, byref(cert_array))
         if status == 0:
-            cnt = _CFArrayGetCount(cert_array)
-            for i in range(cnt):
+            count = _CFArrayGetCount(cert_array)
+            for i in range(count):
                 cert_ref = _CFArrayGetValueAtIndex(cert_array, i)
                 ders.append(_data_to_bytes(_SecCertificateCopyData(cert_ref)))
-            _CFRelease(cert_array)
     # 2) Personal CA certificates from keychain marked trusted
     query = _make_query(
         keys=[_kSecClass, _kSecMatchLimit, _kSecMatchTrustedOnly, _kSecReturnRef],
