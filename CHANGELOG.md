@@ -9,11 +9,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Constant `RUSTLS_LOADED`.
 - Native Rust extension in favor of a pure Python solution.
 - Optional dependency on Certifi.
-- Support for native trust store with MacOS < 10.15 (early 2019 release).
+- Running `python -m wassima` to debug platform support.
 
 ### Added
 - `certificate_revocation_lists_der` function that works with Windows and MacOS.
 - Integrated CA bundle to fallback on when no "official" trust store can be loaded.
+  A single module shipped along with that library is now a derivative work of CCADB work
+  licensed under Community Data License Agreement - Permissive - Version 2.0. It is not
+  like copyleft MPL, therefor is compatible with our main MIT license.
+
+### Changed
+- Top level functions like `generate_ca_bundle` now integrate intermediate CA on Windows and MacOS.
+  You are responsible for trusting the bundle knowing that fact. It will no longer contain only trust anchors.
+  On Python defaults, OpenSSL will rebuild the chain and ensure the trust anchors (e.g. root CA/self-signed) is
+  there and valid. Passing VERIFY_PARTIAL_CHAIN will shortcircuit that insurance.
+- The `create_default_ssl_context` automatically load CRLs available from your truststore (Windows and MacOS).
 
 ## 1.2.2 (2025-03-07)
 
