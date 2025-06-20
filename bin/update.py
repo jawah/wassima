@@ -51,9 +51,12 @@ PYTHON_SRC_FOOTER = """def root_der_certificates() -> list[bytes]:
 
             pem_reconstructed = "".join([chunk[start_marker:], boundary])
 
-            certificates.append(
-                ssl.PEM_cert_to_DER_cert(pem_reconstructed)
-            )
+            try:
+                certificates.append(
+                    ssl.PEM_cert_to_DER_cert(pem_reconstructed)
+                )
+            except ValueError:
+                continue
 
     return certificates
 
