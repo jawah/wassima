@@ -12,7 +12,12 @@ from time import sleep
 
 import pytest
 
-from wassima import create_default_ssl_context, root_pem_certificates, root_der_certificates, register_ca, _MANUALLY_REGISTERED_CA
+from wassima import (
+    create_default_ssl_context,
+    register_ca,
+    root_der_certificates,
+    root_pem_certificates,
+)
 
 IS_WINDOWS = sys.platform == "win32"
 IS_MACOS = sys.platform == "darwin"
@@ -55,9 +60,9 @@ IS_MACOS = sys.platform == "darwin"
     (
         True,
         False,
-    )
+    ),
 )
-def test_ctx_use_system_store(host: str, port: int, expect_failure: bool, bypass_system: bool, monkeypatch) -> None:
+def test_ctx_use_system_store(host: str, port: int, expect_failure: bool, bypass_system: bool, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     if "revoked" in host and (not (IS_MACOS or IS_WINDOWS) or bypass_system):
         pytest.skip("revoked test requires Windows or MacOS truststore")
 
@@ -129,19 +134,17 @@ def serve(server: http.server.HTTPServer) -> None:
     (
         True,
         False,
-    )
+    ),
 )
-def test_ctx_access_local_trusted_root(bypass_system: bool, monkeypatch) -> None:
+def test_ctx_access_local_trusted_root(bypass_system: bool, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     if bypass_system:
         if "MKCERT_ROOT_CA" not in os.environ:
             pytest.skip("Missing MKCERT_ROOT_CA environment variable")
 
         monkeypatch.setattr("wassima._root_der_certificates", lambda: [])
 
-        with open(os.environ.get("MKCERT_ROOT_CA"), "r") as fp:
-            register_ca(
-                fp.read()
-            )
+        with open(os.environ.get("MKCERT_ROOT_CA")) as fp:  # type: ignore[arg-type]
+            register_ca(fp.read())
 
     ctx = create_default_ssl_context()
 
@@ -188,7 +191,7 @@ def test_ctx_access_local_trusted_root(bypass_system: bool, monkeypatch) -> None
     root_pem_certificates.cache_clear()
     root_der_certificates.cache_clear()
 
-    _MANUALLY_REGISTERED_CA = []
+    _MANUALLY_REGISTERED_CA = []  # type: ignore[var-annotated]
 
     s.close()
 

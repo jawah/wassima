@@ -71,7 +71,9 @@ def root_der_certificates() -> list[bytes]:
                         except ValueError:  # Defensive: malformed cert/base64?
                             continue
 
-            except OSError:  # Defensive: Skip files we can't read
+            except (OSError, UnicodeDecodeError):  # Defensive: Skip files we can't read
+                # OSError -> e.g. PermissionError
+                # UnicodeDecodeError -> DER ASN.1 encoded
                 continue
 
     return certificates
