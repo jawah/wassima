@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import http.server
+import os
+import sys
 import threading
 from os.path import exists
 from socket import AF_INET, SOCK_STREAM, socket
@@ -10,7 +12,10 @@ from time import sleep
 
 import pytest
 
-from wassima import create_default_ssl_context
+from wassima import create_default_ssl_context, root_pem_certificates, root_der_certificates, register_ca, _MANUALLY_REGISTERED_CA
+
+IS_WINDOWS = sys.platform == "win32"
+IS_MACOS = sys.platform == "darwin"
 
 
 @pytest.mark.parametrize(
@@ -42,12 +47,24 @@ from wassima import create_default_ssl_context
         ("edellroot.badssl.com", 443, True),
         ("developer.mozilla.org", 443, False),
         ("letsencrypt.org", 443, False),
+        ("revoked-rsa-ev.ssl.com", 443, True),
     ],
 )
-def test_ctx_use_system_store(host: str, port: int, expect_failure: bool) -> None:
-    ctx = create_default_ssl_context()
+@pytest.mark.parametrize(
+    "bypass_system",
+    (
+        True,
+        False,
+    )
+)
+def test_ctx_use_system_store(host: str, port: int, expect_failure: bool, bypass_system: bool, monkeypatch) -> None:
+    if "revoked" in host and (not (IS_MACOS or IS_WINDOWS) or bypass_system):
+        pytest.skip("revoked test requires Windows or MacOS truststore")
 
-    print(len(ctx.get_ca_certs(binary_form=True)))
+    if bypass_system:
+        monkeypatch.setattr("wassima._root_der_certificates", lambda: [])
+
+    ctx = create_default_ssl_context()
 
     s = socket(AF_INET, SOCK_STREAM)
     s = ctx.wrap_socket(s, server_hostname=host)
@@ -67,6 +84,8 @@ def test_ctx_use_system_store(host: str, port: int, expect_failure: bool) -> Non
                     or "unable to get local issuer certificate" in ssl_err
                     or "digest algorithm too weak" in ssl_err
                     or "certificate has expired" in ssl_err
+                    or "revoked" in ssl_err
+                    or "trust failure" in ssl_err
                 )
             else:
                 s.connect((host, port))
@@ -92,6 +111,9 @@ def test_ctx_use_system_store(host: str, port: int, expect_failure: bool) -> Non
 
     s.close()
 
+    root_pem_certificates.cache_clear()
+    root_der_certificates.cache_clear()
+
 
 def serve(server: http.server.HTTPServer) -> None:
     context = SSLContext(PROTOCOL_TLS_SERVER)
@@ -102,7 +124,25 @@ def serve(server: http.server.HTTPServer) -> None:
 
 
 @pytest.mark.skipif(not exists("./example.test.pem"), reason="test requires mkcert")
-def test_ctx_access_local_trusted_root() -> None:
+@pytest.mark.parametrize(
+    "bypass_system",
+    (
+        True,
+        False,
+    )
+)
+def test_ctx_access_local_trusted_root(bypass_system: bool, monkeypatch) -> None:
+    if bypass_system:
+        if "MKCERT_ROOT_CA" not in os.environ:
+            pytest.skip("Missing MKCERT_ROOT_CA environment variable")
+
+        monkeypatch.setattr("wassima._root_der_certificates", lambda: [])
+
+        with open(os.environ.get("MKCERT_ROOT_CA"), "r") as fp:
+            register_ca(
+                fp.read()
+            )
+
     ctx = create_default_ssl_context()
 
     server_address = ("127.0.0.1", 47476)
@@ -144,6 +184,12 @@ def test_ctx_access_local_trusted_root() -> None:
             break
 
     assert s.getpeercert() is not None
+
+    root_pem_certificates.cache_clear()
+    root_der_certificates.cache_clear()
+
+    _MANUALLY_REGISTERED_CA = []
+
     s.close()
 
     httpd.shutdown()
