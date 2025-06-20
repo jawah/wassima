@@ -60,9 +60,7 @@ _kSecClassCertificate = c_void_p.in_dll(_sec, "kSecClassCertificate")
 try:
     _kSecClassCertificateRevocationList = c_void_p.in_dll(_sec, "kSecClassCertificateRevocationList")
 except ValueError:
-    _kSecClassCertificateRevocationList = _core.CFStringCreateWithCString(
-        None, b"kSecClassCertificateRevocationList", 0x08000100
-    )
+    _kSecClassCertificateRevocationList = _core.CFStringCreateWithCString(None, b"crl", 0x08000100)
 _kSecMatchLimit = c_void_p.in_dll(_sec, "kSecMatchLimit")
 _kSecMatchLimitAll = c_void_p.in_dll(_sec, "kSecMatchLimitAll")
 _kSecMatchTrustedOnly = c_void_p.in_dll(_sec, "kSecMatchTrustedOnly")

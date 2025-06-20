@@ -88,9 +88,6 @@ def create_default_ssl_context() -> ssl.SSLContext:
 
     ctx.load_verify_locations(cadata=generate_ca_bundle())
 
-    for crl in certificate_revocation_lists_der():
-        ctx.load_verify_locations(cadata=crl)
-
     ctx.minimum_version = ssl.TLSVersion.TLSv1_2
     ctx.set_ciphers(MOZ_INTERMEDIATE_CIPHERS)
     ctx.verify_mode = ssl.CERT_REQUIRED

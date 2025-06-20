@@ -52,7 +52,6 @@ IS_MACOS = sys.platform == "darwin"
         ("edellroot.badssl.com", 443, True),
         ("developer.mozilla.org", 443, False),
         ("letsencrypt.org", 443, False),
-        ("revoked-rsa-ev.ssl.com", 443, True),
     ],
 )
 @pytest.mark.parametrize(
@@ -63,9 +62,6 @@ IS_MACOS = sys.platform == "darwin"
     ),
 )
 def test_ctx_use_system_store(host: str, port: int, expect_failure: bool, bypass_system: bool, monkeypatch) -> None:  # type: ignore[no-untyped-def]
-    if "revoked" in host and (not (IS_MACOS or IS_WINDOWS) or bypass_system):
-        pytest.skip("revoked test requires Windows or MacOS truststore")
-
     if bypass_system:
         monkeypatch.setattr("wassima._root_der_certificates", lambda: [])
 
