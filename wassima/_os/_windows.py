@@ -42,8 +42,8 @@ def certificate_revocation_lists_der() -> list[bytes]:
 
     for system_store in WINDOWS_STORES:
         try:
-            for cert_bytes, encoding_type, trust in enum_crls(system_store):
-                crls.append(cert_bytes)  # CRLs are always DER-encoded
+            for crl_bytes, encoding_type in enum_crls(system_store):
+                crls.append(crl_bytes)  # CRLs are always DER-encoded
         except PermissionError:  # Defensive: we can't cover that scenario in CI.
             # A Network/Workgroup ruling may forbid access to a single or many
             # store. We'll just ignore it!
