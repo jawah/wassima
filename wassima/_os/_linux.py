@@ -48,43 +48,37 @@ def root_der_certificates() -> list[bytes]:
                 continue
 
             try:
-                with open(filepath, "rb") as f:
-                    content = f.read()
+                with open(filepath, encoding="utf-8") as f:
+                    bundle = f.read()
 
-                if not content:  # Skip empty files
-                    continue
+                if not bundle.strip():  # Skip empty files
+                    continue  # Defensive:
 
-                # Try to handle the file as PEM certificate(s) first
-                try:
-                    ascii_content = content.decode("ascii")
-                    # Split on PEM certificate boundaries
-                    pem_certs = [
-                        cert for cert in ascii_content.split("-----BEGIN CERTIFICATE-----") if cert.strip()
-                    ]  # Remove empty strings
+                line_ending = "\n" if "-----END CERTIFICATE-----\r\n" not in bundle else "\r\n"
+                boundary = "-----END CERTIFICATE-----" + line_ending
 
-                    for pem_cert in pem_certs:
+                for chunk in bundle.split(boundary):
+                    if chunk:
+                        start_marker = chunk.find("-----BEGIN CERTIFICATE-----" + line_ending)
+
+                        if start_marker == -1:
+                            break
+
+                        pem_reconstructed = "".join([chunk[start_marker:], boundary])
+
                         try:
-                            # Restore the header if it's not the first cert
-                            if not pem_cert.startswith("-----BEGIN CERTIFICATE-----"):
-                                pem_cert = "-----BEGIN CERTIFICATE-----" + pem_cert
-
-                            der_cert = PEM_cert_to_DER_cert(pem_cert)
-                            if der_cert not in certificates:
-                                certificates.append(der_cert)
-                        except ValueError:
-                            # Skip invalid PEM certificates
+                            certificates.append(PEM_cert_to_DER_cert(pem_reconstructed))
+                        except ValueError:  # Defensive: malformed cert/base64?
                             continue
 
-                except (ValueError, UnicodeDecodeError):
-                    # Not a valid PEM certificate file
-                    continue
-
-            except OSError:
-                # Skip files we can't read
+            except OSError:  # Defensive: Skip files we can't read
                 continue
 
     return certificates
 
 
 def certificate_revocation_lists_der() -> list[bytes]:
+    # Linux has no 'official' concept of CRL storage using files.
+    # Some corporate environment MAY have a list of DER encoded CRLs
+    # somewhere. We may define a way to define a base folder.
     return []

@@ -115,7 +115,7 @@ def root_der_certificates() -> list[bytes]:
     Returns a list of DER-encoded certificates trusted for TLS server auth,
     covering system roots, admin, user trust settings, and personal CAs.
     """
-    ders = []
+    certificates: list[bytes] = []
     # 1) System/user/admin trust settings
     for domain in (0, 1, 2):
         cert_array = CFArrayRef()
@@ -124,7 +124,7 @@ def root_der_certificates() -> list[bytes]:
             count = _CFArrayGetCount(cert_array)
             for i in range(count):
                 cert_ref = _CFArrayGetValueAtIndex(cert_array, i)
-                ders.append(_data_to_bytes(_SecCertificateCopyData(cert_ref)))
+                certificates.append(_data_to_bytes(_SecCertificateCopyData(cert_ref)))
     # 2) Personal CA certificates from keychain marked trusted
     query = _make_query(
         keys=[_kSecClass, _kSecMatchLimit, _kSecMatchTrustedOnly, _kSecReturnRef],
@@ -133,10 +133,10 @@ def root_der_certificates() -> list[bytes]:
     try:
         cert_refs = _query_refs(query)
         for c in cert_refs:
-            ders.append(_data_to_bytes(_SecCertificateCopyData(c)))
+            certificates.append(_data_to_bytes(_SecCertificateCopyData(c)))
     except OSError:
         pass
-    return ders
+    return certificates
 
 
 # Public: retrieve DER-encoded CRLs
