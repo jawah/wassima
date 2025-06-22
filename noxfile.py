@@ -55,3 +55,48 @@ def sync(session: nox.Session) -> None:
     session.install("pre-commit")
 
     session.run("pre-commit", "run", "--all-files", success_codes=[1, 0], silent=True)
+
+
+def git_clone(session: nox.Session, git_url: str) -> None:
+    """We either clone the target repository or if already exist
+    simply reset the state and pull.
+    """
+    expected_directory = git_url.split("/")[-1]
+
+    if expected_directory.endswith(".git"):
+        expected_directory = expected_directory[:-4]
+
+    if not os.path.isdir(expected_directory):
+        session.run("git", "clone", "--depth", "1", git_url, external=True)
+    else:
+        session.run("git", "-C", expected_directory, "reset", "--hard", "HEAD", external=True)
+        session.run("git", "-C", expected_directory, "pull", external=True)
+
+
+@nox.session()
+def downstream_niquests(session: nox.Session) -> None:
+    root = os.getcwd()
+    tmp_dir = session.create_tmp()
+
+    session.cd(tmp_dir)
+    git_clone(session, "https://github.com/jawah/niquests")
+    session.chdir("niquests")
+
+    session.run("git", "rev-parse", "HEAD", external=True)
+    session.install(".[socks]", silent=False)
+    session.install("-r", "requirements-dev.txt", silent=False)
+
+    session.cd(root)
+    session.install(".", silent=False)
+    session.cd(f"{tmp_dir}/niquests")
+
+    session.run("python", "-c", "import wassima; print(wassima.__version__)")
+    session.run(
+        "python",
+        "-m",
+        "pytest",
+        "-v",
+        f"--color={'yes' if 'GITHUB_ACTIONS' in os.environ else 'auto'}",
+        *(session.posargs or ("tests/",)),
+        env={"NIQUESTS_STRICT_OCSP": "1"},
+    )
