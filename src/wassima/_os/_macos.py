@@ -35,6 +35,10 @@ _CFDataGetBytePtr = _core.CFDataGetBytePtr
 _CFDataGetBytePtr.argtypes = [CFDataRef]
 _CFDataGetBytePtr.restype = ctypes.POINTER(ctypes.c_ubyte)
 
+_CFRelease = _core.CFRelease
+_CFRelease.argtypes = [c_void_p]
+_CFRelease.restype = None
+
 # Security function prototypes
 _SecItemCopyMatching = _sec.SecItemCopyMatching
 _SecItemCopyMatching.argtypes = [CFDictionaryRef, POINTER(CFTypeRef)]
@@ -100,7 +104,7 @@ def _data_to_bytes(data_ref: c_void_p) -> bytes:
     length = _CFDataGetLength(data_ref)
     ptr = _CFDataGetBytePtr(data_ref)
     data = bytes(ctypes.string_at(ptr, length))
-    # Note: No CFRelease() here
+    _CFRelease(data_ref)
     return data
 
 
