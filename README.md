@@ -13,10 +13,11 @@
   </a>
 </p>
 
-This project offers you a great alternative to MPL licensed **certifi**.
+This project offers you a great alternative to the MPL licensed **certifi**.
 
 This project allows you to access your original operating system trust store, thus
-helping you to verify the remote peer certificates.
+helping you to verify the remote peer certificates. It automatically fallback to an
+embedded trust store generated from the CCADB trusted source.
 
 It works as-is out-of-the-box for MacOS (10.15+), Windows (7+), and Linux. Available on PyPy and Python 3.7+
 
@@ -75,6 +76,7 @@ bundle = wassima.generate_ca_bundle()
 ```python
 import wassima
 
+# register CA only accept string PEM (one at a time!)
 wassima.register_ca(open("./myrootca.pem", "r").read())
 bundle = wassima.generate_ca_bundle()
 # ... It contains a string with all of your root CAs, PLUS your own 'myrootca.pem'.

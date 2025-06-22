@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Top level functions like `generate_ca_bundle` now integrate intermediate CA on Windows and MacOS.
   You are responsible for trusting the bundle knowing that fact. It will no longer contain only trust anchors.
   On Python defaults, OpenSSL will rebuild the chain and ensure the trust anchors (e.g. root CA/self-signed) is
-  there and valid. Passing VERIFY_PARTIAL_CHAIN will shortcircuit that insurance.
+  there and valid. Passing VERIFY_PARTIAL_CHAIN will shortcircuit that insurance. (#16)
 
 ## 1.2.2 (2025-03-07)
 
