@@ -126,6 +126,8 @@ def root_der_certificates() -> list[bytes]:
                 cert_ref = _CFArrayGetValueAtIndex(cert_array, i)
                 certificates.append(_data_to_bytes(_SecCertificateCopyData(cert_ref)))
 
+        _CFRelease(cert_array)
+
     # 2) Personal CA certificates from keychain marked trusted
     query = _make_query(
         keys=[_kSecClass, _kSecMatchLimit, _kSecMatchTrustedOnly, _kSecReturnRef],
