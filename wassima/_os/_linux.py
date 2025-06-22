@@ -29,6 +29,15 @@ KNOWN_TRUST_STORE_EXTENSIONS: list[str] = [
     "crt",
 ]
 
+BANNED_KEYWORD_NOT_TLS: set[str] = {
+    "email",
+    "objsign",
+    "trust",
+    "timestamp",
+    "codesign",
+    "ocsp",
+}
+
 
 def root_der_certificates() -> list[bytes]:
     certificates: list[bytes] = []
@@ -45,6 +54,9 @@ def root_der_certificates() -> list[bytes]:
             extension = str(filepath).split(".")[-1]
 
             if extension not in KNOWN_TRUST_STORE_EXTENSIONS and extension.isdigit() is False:
+                continue
+
+            if any(kw in str(filepath).lower() for kw in BANNED_KEYWORD_NOT_TLS):
                 continue
 
             try:
@@ -67,9 +79,12 @@ def root_der_certificates() -> list[bytes]:
                         pem_reconstructed = "".join([chunk[start_marker:], boundary])
 
                         try:
-                            certificates.append(PEM_cert_to_DER_cert(pem_reconstructed))
+                            der_certificate = PEM_cert_to_DER_cert(pem_reconstructed)
                         except ValueError:  # Defensive: malformed cert/base64?
                             continue
+
+                        if der_certificate not in certificates:
+                            certificates.append(der_certificate)
 
             except (OSError, UnicodeDecodeError):  # Defensive: Skip files we can't read
                 # OSError -> e.g. PermissionError
