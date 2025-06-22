@@ -5,7 +5,9 @@ disable_warnings = no-sysmon
 
 [paths]
 source =
-    wassima/*
+    src/wassima
+    */wassima
+    *\wassima
 
 [report]
 exclude_lines =

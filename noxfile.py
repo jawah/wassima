@@ -9,6 +9,7 @@ import nox
 def test(session: nox.Session) -> None:
     # Install deps and the package itself.
     session.install("-r", "requirements-dev.txt")
+    session.install(".")
 
     # Show the pip version.
     session.run("pip", "--version")

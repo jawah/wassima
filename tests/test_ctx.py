@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import http.server
 import os
-import sys
 import threading
 from os.path import exists
 from socket import AF_INET, SOCK_STREAM, socket
@@ -18,9 +17,6 @@ from wassima import (
     root_der_certificates,
     root_pem_certificates,
 )
-
-IS_WINDOWS = sys.platform == "win32"
-IS_MACOS = sys.platform == "darwin"
 
 
 @pytest.mark.parametrize(

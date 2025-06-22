@@ -18,7 +18,7 @@ This project offers you a great alternative to MPL licensed **certifi**.
 This project allows you to access your original operating system trust store, thus
 helping you to verify the remote peer certificates.
 
-It works as-is out-of-the-box for MacOS, Windows, and Linux. Available on PyPy and Python 3.7+
+It works as-is out-of-the-box for MacOS (10.15+), Windows (7+), and Linux. Available on PyPy and Python 3.7+
 
 If your particular operating system is not supported, we can make this happen! Open
 an issue on the repository.

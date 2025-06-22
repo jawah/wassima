@@ -8,7 +8,7 @@ description = "Access your OS root certificates with utmost ease"
 readme = "README.md"
 license-files = { paths = ["LICENSE"] }
 license = "MIT"
-keywords = ["truststore", "ssl", "tls", "root ca", "ca", "trust", "https", "certificate"]
+keywords = ["truststore", "ssl", "tls", "root ca", "ca", "trust", "https", "certificate", "certifi"]
 authors = [
   {name = "Ahmed R. TAHRI", email="tahri.ahmed@proton.me"},
 ]
@@ -17,7 +17,6 @@ maintainers = [
 ]
 requires-python = ">=3.7"
 classifiers = [
-    "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Programming Language :: Python :: 3",
@@ -40,21 +39,22 @@ classifiers = [
 dynamic = ["version"]
 
 [tool.hatch.version]
-path = "wassima/_version.py"
+path = "src/wassima/_version.py"
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "/wassima",
+    "/src",
     "/tests",
     "/requirements-dev.txt",
     "/CHANGELOG.md",
     "/README.md",
     "/LICENSE",
+    "/NOTICE",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = [
-    "wassima/",
+    "src/wassima/",
 ]
 
 [project.urls]
@@ -82,7 +82,7 @@ select = [
 required-imports = ["from __future__ import annotations"]
 
 [tool.mypy]
-mypy_path = "wassima"
+mypy_path = "src"
 check_untyped_defs = true
 disallow_any_generics = true
 disallow_incomplete_defs = true
