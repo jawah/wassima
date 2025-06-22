@@ -1,3 +1,3 @@
-include README.md CHANGELOG.md NOTICE LICENSE requirements-dev.txt src/wassima/py.typed pyproject.toml
+include README.md CHANGELOG.md SECURITY.md NOTICE LICENSE requirements-dev.txt src/wassima/py.typed pyproject.toml noxfile.py .coveragerc
 recursive-include tests *
 recursive-include src *
