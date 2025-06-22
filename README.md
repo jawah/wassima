@@ -13,20 +13,16 @@
   </a>
 </p>
 
-This project offers you a great alternative to **certifi**. It is a simple yet efficient wrapper
-around MIT licensed **rustls-native-certs**.
+This project offers you a great alternative to the MPL licensed **certifi**.
 
 This project allows you to access your original operating system trust store, thus
-helping you to verify the remote peer certificates.
+helping you to verify the remote peer certificates. It automatically fallback to an
+embedded trust store generated from the CCADB trusted source.
 
-It works as-is out-of-the-box for MacOS, Windows, and Linux. Automatically fallback on Certifi otherwise.
-Available on PyPy and Python 3.7+
+It works as-is out-of-the-box for MacOS (10.15+), Windows (7+), and Linux. Available on PyPy and Python 3.7+
 
-If your particular operating system is not supported, we will make this happen! Open
+If your particular operating system is not supported, we can make this happen! Open
 an issue on the repository.
-
-For now, it is not supported to call your OS certificate verify native function.
-Use your Python native capabilities for it.
 
 ## ✨ Installation
 
@@ -80,6 +76,7 @@ bundle = wassima.generate_ca_bundle()
 ```python
 import wassima
 
+# register CA only accept string PEM (one at a time!)
 wassima.register_ca(open("./myrootca.pem", "r").read())
 bundle = wassima.generate_ca_bundle()
 # ... It contains a string with all of your root CAs, PLUS your own 'myrootca.pem'.

@@ -1,14 +1,14 @@
 [build-system]
-requires = ["maturin>=1.7,<2"]
-build-backend = "maturin"
+requires = ["hatchling>=1.6.0,<2"]
+build-backend = "hatchling.build"
 
 [project]
 name = "wassima"
 description = "Access your OS root certificates with utmost ease"
 readme = "README.md"
+license-files = { paths = ["LICENSE"] }
 license = "MIT"
-license-files = ["LICENSE"]
-keywords = ["truststore", "ssl", "tls", "root ca", "ca", "trust", "https", "certificate"]
+keywords = ["truststore", "ssl", "tls", "root ca", "ca", "trust", "https", "certificate", "certifi"]
 authors = [
   {name = "Ahmed R. TAHRI", email="tahri.ahmed@proton.me"},
 ]
@@ -17,7 +17,6 @@ maintainers = [
 ]
 requires-python = ">=3.7"
 classifiers = [
-    "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Programming Language :: Python :: 3",
@@ -28,6 +27,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: 3 :: Only",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
@@ -36,10 +36,29 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Development Status :: 5 - Production/Stable"
 ]
-dependencies = [
-  "certifi; (platform_python_implementation != 'CPython' or python_full_version < '3.7.10') or (platform_system != 'Darwin' and platform_system != 'Windows' and platform_system != 'Linux') or (platform_machine != 'x86_64' and platform_machine != 's390x' and platform_machine != 'aarch64' and platform_machine != 'armv7l' and platform_machine != 'ppc64le' and platform_machine != 'ppc64' and platform_machine != 'AMD64' and platform_machine != 'arm64' and platform_machine != 'ARM64' and platform_machine != 'i686' and platform_machine != 'x86') or (platform_python_implementation == 'PyPy' and python_version >= '3.12')",
-]
 dynamic = ["version"]
+
+[tool.hatch.version]
+path = "src/wassima/_version.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/requirements-dev.txt",
+    "/CHANGELOG.md",
+    "/README.md",
+    "/LICENSE",
+    "/NOTICE",
+    "/noxfile.py",
+    "/SECURITY.md",
+    "/.coveragerc",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/wassima/",
+]
 
 [project.urls]
 "Changelog" = "https://github.com/jawah/wassima/blob/main/CHANGELOG.md"
@@ -47,19 +66,26 @@ dynamic = ["version"]
 "Code" = "https://github.com/jawah/wassima"
 "Issue tracker" = "https://github.com/jawah/wassima/issues"
 
-[tool.maturin]
-features = ["pyo3/extension-module", "pyo3/abi3-py37", "pyo3/generate-import-lib"]
-module-name = "wassima._rustls"
-
 [tool.pytest.ini_options]
 log_level = "DEBUG"
 
-[tool.isort]
-profile = "black"
-add_imports = "from __future__ import annotations"
+[tool.ruff]
+line-length = 128
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle
+    "F",  # Pyflakes
+    "W",  # pycodestyle
+    "I",  # isort
+    "U",  # pyupgrade
+]
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
 
 [tool.mypy]
-mypy_path = "wassima"
+mypy_path = "src"
 check_untyped_defs = true
 disallow_any_generics = true
 disallow_incomplete_defs = true

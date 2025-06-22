@@ -3,6 +3,26 @@
 All notable changes to wassima will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2.0.0 (2025-06-22)
+
+### Removed
+- Constant `RUSTLS_LOADED`.
+- Native Rust extension in favor of a pure Python solution.
+- Optional dependency on Certifi.
+- Running `python -m wassima` to debug platform support.
+
+### Added
+- Integrated CA bundle to fallback on when no "official" trust store can be loaded.
+  A single module shipped along with that library is now a derivative work of CCADB work
+  licensed under Community Data License Agreement - Permissive - Version 2.0. It is not
+  like copyleft MPL, therefor is compatible with our main MIT license.
+
+### Changed
+- Top level functions like `generate_ca_bundle` now integrate intermediate CA on Windows and MacOS.
+  You are responsible for trusting the bundle knowing that fact. It will no longer contain only trust anchors.
+  On Python defaults, OpenSSL will rebuild the chain and ensure the trust anchors (e.g. root CA/self-signed) is
+  there and valid. Passing VERIFY_PARTIAL_CHAIN will shortcircuit that insurance. (#16)
+
 ## 1.2.2 (2025-03-07)
 
 ### Added
