@@ -41,3 +41,17 @@ def test(session: nox.Session) -> None:
 def lint(session: nox.Session) -> None:
     session.install("pre-commit")
     session.run("pre-commit", "run", "--all-files")
+
+
+@nox.session
+def sync(session: nox.Session) -> None:
+    session.install("-r", "requirements-dev.txt")
+
+    session.run(
+        "python",
+        "bin/update.py",
+    )
+
+    session.install("pre-commit")
+
+    session.run("pre-commit", "run", "--all-files", success_codes=[1, 0], silent=True)
