@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - release-2.0
     tags:
       - '*'
   workflow_dispatch:
@@ -37,7 +36,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-13, macos-14, macos-15, windows-latest ]
+        os: [ubuntu-22.04, ubuntu-24.04, macos-13, macos-14, macos-15, windows-latest ]
         python_version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', 'pypy-3.11', '3.14']
         exclude:
           - os: macos-14
@@ -47,6 +46,10 @@ jobs:
           - os: macos-14
             python_version: 'pypy-3.7'
           - os: macos-15
+            python_version: 'pypy-3.7'
+          - os: ubuntu-24.04
+            python_version: '3.7'
+          - os: ubuntu-24.04
             python_version: 'pypy-3.7'
     runs-on: ${{ matrix.os }}
     steps:
@@ -60,16 +63,16 @@ jobs:
       - name: Setup dependencies
         run: pip install pytest
       - name: Install mkcert (Linux)
-        if: matrix.os == 'ubuntu-22.04'
+        if: startsWith(matrix.os, 'ubuntu-')
         run: sudo apt-get install mkcert
       - name: Install mkcert (MacOS)
-        if: matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15'
+        if: startsWith(matrix.os, 'macos-')
         run: brew install mkcert
       - name: Inject fake CA in TrustStore (MacOS/Linux)
-        if: matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15' || matrix.os == 'ubuntu-22.04'
+        if: startsWith(matrix.os, 'macos-') || startsWith(matrix.os, 'ubuntu-')
         run: mkcert -install
       - name: Generate a valid certificate
-        if: matrix.os == 'macos-13' || matrix.os == 'macos-14' || matrix.os == 'macos-15' || matrix.os == 'ubuntu-22.04'
+        if: startsWith(matrix.os, 'macos-') || startsWith(matrix.os, 'ubuntu-')
         run: |
           mkcert example.test
           echo "MKCERT_ROOT_CA=$(mkcert -CAROOT)/rootCA.pem" >> $GITHUB_ENV
