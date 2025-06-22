@@ -84,8 +84,10 @@ def _make_query(keys: list[c_void_p], values: list[c_void_p]) -> CFDictionaryRef
 def _query_refs(query: CFDictionaryRef) -> list[CFTypeRef]:
     result = CFTypeRef()
     status = _SecItemCopyMatching(query, byref(result))
+
     if status != 0:
-        raise OSError(status, "SecItemCopyMatching failed")
+        raise OSError(f"SecItemCopyMatching failed with status={status}")  # Defensive: OOM?
+
     array_ref = CFArrayRef(result.value)
     count = _CFArrayGetCount(array_ref)
     items = [_CFArrayGetValueAtIndex(array_ref, i) for i in range(count)]
@@ -109,6 +111,7 @@ def root_der_certificates() -> list[bytes]:
     covering system roots, admin, user trust settings, and personal CAs.
     """
     certificates: list[bytes] = []
+
     # 1) System/user/admin trust settings
     for domain in (0, 1, 2):
         cert_array = CFArrayRef()
@@ -118,15 +121,18 @@ def root_der_certificates() -> list[bytes]:
             for i in range(count):
                 cert_ref = _CFArrayGetValueAtIndex(cert_array, i)
                 certificates.append(_data_to_bytes(_SecCertificateCopyData(cert_ref)))
+
     # 2) Personal CA certificates from keychain marked trusted
     query = _make_query(
         keys=[_kSecClass, _kSecMatchLimit, _kSecMatchTrustedOnly, _kSecReturnRef],
         values=[_kSecClassCertificate, _kSecMatchLimitAll, _kSecBooleanTrue, _kSecReturnRef],
     )
+
     try:
         cert_refs = _query_refs(query)
         for c in cert_refs:
             certificates.append(_data_to_bytes(_SecCertificateCopyData(c)))
-    except OSError:
+    except OSError:  # Defensive: OOM?
         pass
+
     return certificates

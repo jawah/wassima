@@ -96,7 +96,7 @@ def create_default_ssl_context() -> ssl.SSLContext:
 
     try:
         ctx.check_hostname = True
-    except AttributeError:
+    except AttributeError:  # Defensive: very old 3.7 branch
         pass
 
     return ctx

@@ -20,7 +20,7 @@ def root_der_certificates() -> list[bytes]:
         try:
             for cert_bytes, encoding_type, trust in enum_certificates(system_store):
                 if not trust:
-                    continue
+                    continue  # Defensive: edge case, rare one.
 
                 # if not True, then, we MUST LOOK for SERVER_AUTH oid EKU
                 if not isinstance(trust, bool) and SERVER_AUTH_OID not in trust:
