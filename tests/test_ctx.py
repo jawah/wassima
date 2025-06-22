@@ -4,6 +4,7 @@ import http.server
 import os
 import threading
 from os.path import exists
+from random import randint
 from socket import AF_INET, SOCK_STREAM, socket
 from socket import timeout as SocketTimeout
 from ssl import PROTOCOL_TLS_SERVER, SSLContext, SSLError
@@ -138,7 +139,7 @@ def test_ctx_access_local_trusted_root(bypass_system: bool, monkeypatch) -> None
 
     ctx = create_default_ssl_context()
 
-    server_address = ("127.0.0.1", 47476)
+    server_address = ("127.0.0.1", randint(47476, 55476))
     httpd = http.server.HTTPServer(server_address, http.server.SimpleHTTPRequestHandler)
 
     t = threading.Thread(target=serve, args=(httpd,))
@@ -158,7 +159,7 @@ def test_ctx_access_local_trusted_root(bypass_system: bool, monkeypatch) -> None
             assert False
 
         try:
-            s.connect(("127.0.0.1", 47476))
+            s.connect(server_address)
         except (ConnectionError, TimeoutError, SocketTimeout):
             i += 1
             s.close()
