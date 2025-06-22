@@ -77,10 +77,3 @@ def root_der_certificates() -> list[bytes]:
                 continue
 
     return certificates
-
-
-def certificate_revocation_lists_der() -> list[bytes]:
-    # Linux has no 'official' concept of CRL storage using files.
-    # Some corporate environment MAY have a list of DER encoded CRLs
-    # somewhere. We may define a way to define a base folder.
-    return []

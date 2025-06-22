@@ -18,16 +18,13 @@ if IS_MACOS:
 
 
 if IS_WINDOWS:
-    from ._windows import certificate_revocation_lists_der, root_der_certificates
+    from ._windows import root_der_certificates
 elif IS_MACOS and MACOS_VERSION >= (10, 15):  # type: ignore[operator]
-    from ._macos import certificate_revocation_lists_der, root_der_certificates
+    from ._macos import root_der_certificates
 elif IS_LINUX or IS_BSD:
-    from ._linux import certificate_revocation_lists_der, root_der_certificates
+    from ._linux import root_der_certificates
 else:
-    from ._embed import certificate_revocation_lists_der, root_der_certificates
+    from ._embed import root_der_certificates
 
 
-__all__ = (
-    "root_der_certificates",
-    "certificate_revocation_lists_der",
-)
+__all__ = ("root_der_certificates",)

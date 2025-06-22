@@ -3,7 +3,7 @@
 All notable changes to wassima will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## 2.0.0 (2025-06-??)
+## 2.0.0 (2025-06-22)
 
 ### Removed
 - Constant `RUSTLS_LOADED`.
@@ -12,7 +12,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Running `python -m wassima` to debug platform support.
 
 ### Added
-- `certificate_revocation_lists_der` function that works with Windows and MacOS.
 - Integrated CA bundle to fallback on when no "official" trust store can be loaded.
   A single module shipped along with that library is now a derivative work of CCADB work
   licensed under Community Data License Agreement - Permissive - Version 2.0. It is not
@@ -23,7 +22,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   You are responsible for trusting the bundle knowing that fact. It will no longer contain only trust anchors.
   On Python defaults, OpenSSL will rebuild the chain and ensure the trust anchors (e.g. root CA/self-signed) is
   there and valid. Passing VERIFY_PARTIAL_CHAIN will shortcircuit that insurance.
-- The `create_default_ssl_context` automatically load CRLs available from your truststore (Windows and MacOS).
 
 ## 1.2.2 (2025-03-07)
 

@@ -57,15 +57,10 @@ _kSecBooleanTrue = _kCFBooleanTrue
 # SecItem constants
 _kSecClass = c_void_p.in_dll(_sec, "kSecClass")
 _kSecClassCertificate = c_void_p.in_dll(_sec, "kSecClassCertificate")
-try:
-    _kSecClassCertificateRevocationList = c_void_p.in_dll(_sec, "kSecClassCertificateRevocationList")
-except ValueError:
-    _kSecClassCertificateRevocationList = _core.CFStringCreateWithCString(None, b"crl", 0x08000100)
 _kSecMatchLimit = c_void_p.in_dll(_sec, "kSecMatchLimit")
 _kSecMatchLimitAll = c_void_p.in_dll(_sec, "kSecMatchLimitAll")
 _kSecMatchTrustedOnly = c_void_p.in_dll(_sec, "kSecMatchTrustedOnly")
 _kSecReturnRef = c_void_p.in_dll(_sec, "kSecReturnRef")
-_kSecReturnData = c_void_p.in_dll(_sec, "kSecReturnData")
 
 
 # Helper: build a CFDictionary for SecItem queries
@@ -135,19 +130,3 @@ def root_der_certificates() -> list[bytes]:
     except OSError:
         pass
     return certificates
-
-
-# Public: retrieve DER-encoded CRLs
-def certificate_revocation_lists_der() -> list[bytes]:
-    """
-    Returns all certificate revocation lists (CRLs) found in system and user keychains, in DER.
-    """
-    query = _make_query(
-        keys=[_kSecClass, _kSecMatchLimit, _kSecReturnData],
-        values=[_kSecClassCertificateRevocationList, _kSecMatchLimitAll, _kSecBooleanTrue],
-    )
-    try:
-        data_refs = _query_refs(query)
-        return [_data_to_bytes(d) for d in data_refs]
-    except OSError:
-        return []

@@ -10,9 +10,6 @@ from functools import lru_cache
 from threading import RLock
 
 from ._os import (
-    certificate_revocation_lists_der,
-)
-from ._os import (
     root_der_certificates as _root_der_certificates,
 )
 from ._os._embed import root_der_certificates as fallback_der_certificates
@@ -113,5 +110,4 @@ __all__ = (
     "register_ca",
     "__version__",
     "VERSION",
-    "certificate_revocation_lists_der",
 )

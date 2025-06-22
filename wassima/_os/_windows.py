@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ssl import enum_certificates, enum_crls  # type: ignore[attr-defined]
+from ssl import enum_certificates  # type: ignore[attr-defined]
 
 # ROOT: Highest level of trust. Trust anchors. Self-Signed.
 # MY: User installed/custom trust anchors. Self-Signed.
@@ -37,22 +37,4 @@ def root_der_certificates() -> list[bytes]:
     return certificates
 
 
-def certificate_revocation_lists_der() -> list[bytes]:
-    crls = []
-
-    for system_store in WINDOWS_STORES:
-        try:
-            for crl_bytes, encoding_type in enum_crls(system_store):
-                crls.append(crl_bytes)  # CRLs are always DER-encoded
-        except PermissionError:  # Defensive: we can't cover that scenario in CI.
-            # A Network/Workgroup ruling may forbid access to a single or many
-            # store. We'll just ignore it!
-            continue
-
-    return crls
-
-
-__all__ = (
-    "root_der_certificates",
-    "certificate_revocation_lists_der",
-)
+__all__ = ("root_der_certificates",)

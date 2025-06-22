@@ -4235,7 +4235,3 @@ def root_der_certificates() -> list[bytes]:
                 continue  # just skip it... don't crash everything.
 
     return certificates
-
-
-def certificate_revocation_lists_der() -> list[bytes]:
-    return []

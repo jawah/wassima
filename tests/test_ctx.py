@@ -85,8 +85,6 @@ def test_ctx_use_system_store(host: str, port: int, expect_failure: bool, bypass
                     or "unable to get local issuer certificate" in ssl_err
                     or "digest algorithm too weak" in ssl_err
                     or "certificate has expired" in ssl_err
-                    or "revoked" in ssl_err
-                    or "trust failure" in ssl_err
                 )
             else:
                 s.connect((host, port))
