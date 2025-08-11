@@ -3,6 +3,11 @@
 All notable changes to wassima will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2.0.1 (2025-08-11)
+
+### Changed
+- CCADB embedded bundle is updated to latest version. Include a new CA. (#23)
+
 ## 2.0.0 (2025-06-22)
 
 ### Removed
