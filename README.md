@@ -19,10 +19,8 @@ This project allows you to access your original operating system trust store, th
 helping you to verify the remote peer certificates. It automatically fallback to an
 embedded trust store generated from the CCADB trusted source.
 
-It works as-is out-of-the-box for MacOS (10.15+), Windows (7+), and Linux. Available on PyPy and Python 3.7+
-
-If your particular operating system is not supported, we can make this happen! Open
-an issue on the repository.
+It works as-is out-of-the-box for any operating systems out there.
+Available on PyPy and Python 3.7+
 
 ## ✨ Installation
 
