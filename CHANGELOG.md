@@ -3,6 +3,11 @@
 All notable changes to wassima will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2.0.4 (2026-01-13)
+
+### Fixed
+- Rare unhandled PermissionError in Linux while in autodiscover of trusted CAs.
+
 ## 2.0.3 (2025-12-16)
 
 ### Changed

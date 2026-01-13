@@ -48,18 +48,18 @@ def root_der_certificates() -> list[bytes]:
 
         # Use rglob to recursively search all files in directory and subdirectories
         for filepath in Path(directory).rglob("*"):
-            if not filepath.is_file():  # Skip directories
-                continue
-
-            extension = str(filepath).split(".")[-1]
-
-            if extension not in KNOWN_TRUST_STORE_EXTENSIONS and extension.isdigit() is False:
-                continue
-
-            if any(kw in str(filepath).lower() for kw in BANNED_KEYWORD_NOT_TLS):
-                continue
-
             try:
+                if not filepath.is_file():  # Skip directories
+                    continue
+
+                extension = filepath.suffix.lstrip(".").lower()
+
+                if extension not in KNOWN_TRUST_STORE_EXTENSIONS and extension.isdigit() is False:
+                    continue
+
+                if any(kw in str(filepath).lower() for kw in BANNED_KEYWORD_NOT_TLS):
+                    continue
+
                 with open(filepath, encoding="utf-8") as f:
                     bundle = f.read()
 
