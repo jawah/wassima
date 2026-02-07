@@ -3,6 +3,14 @@
 All notable changes to wassima will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2.0.5 (2026-02-07)
+
+### Fixed
+- Unreasonable deep scan under FreeBSD causing a significant lag while loading trusted CAs. (https://github.com/jawah/niquests/issues/332)
+
+### Changed
+- CCADB embedded bundle is updated to latest version. (#41)
+
 ## 2.0.4 (2026-01-13)
 
 ### Fixed
