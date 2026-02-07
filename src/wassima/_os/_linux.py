@@ -11,7 +11,7 @@ BUNDLE_TRUST_STORE_DIRECTORIES: list[str] = [
     "/usr/local/ssl",
     "/usr/local/openssl",
     "/usr/local/etc/openssl",
-    "/usr/local/share",
+    "/usr/local/share/certs",
     "/usr/lib/ssl",
     "/usr/ssl",
     "/etc/openssl",
@@ -36,6 +36,7 @@ BANNED_KEYWORD_NOT_TLS: set[str] = {
     "timestamp",
     "codesign",
     "ocsp",
+    "untrusted",
 }
 
 
@@ -74,7 +75,7 @@ def root_der_certificates() -> list[bytes]:
                         start_marker = chunk.find("-----BEGIN CERTIFICATE-----" + line_ending)
 
                         if start_marker == -1:
-                            break
+                            break  # Defensive: file that aren't PEM encoded in target directories(...)
 
                         pem_reconstructed = "".join([chunk[start_marker:], boundary])
 
