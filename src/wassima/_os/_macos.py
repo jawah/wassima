@@ -1,39 +1,65 @@
 from __future__ import annotations
 
 import ctypes
-from ctypes import POINTER, byref, c_int32, c_uint32, c_void_p
+from ctypes import POINTER, byref, c_int32, c_long, c_void_p
 
 # Load frameworks
-_core = ctypes.CDLL("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")
-_sec = ctypes.CDLL("/System/Library/Frameworks/Security.framework/Security")
+_core = ctypes.CDLL(
+    "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+    use_errno=True,
+)
+_sec = ctypes.CDLL(
+    "/System/Library/Frameworks/Security.framework/Security",
+    use_errno=True,
+)
 
-# Type aliases
+# Type aliases (CFIndex is a signed long on macOS, 8 bytes on 64-bit)
 CFTypeRef = c_void_p
 CFArrayRef = c_void_p
 CFDataRef = c_void_p
 CFDictionaryRef = c_void_p
+CFIndex = c_long
 OSStatus = c_int32
 
+# Trust settings result constants
+# See: https://developer.apple.com/documentation/security/sectrustsettingsresult
+_kSecTrustSettingsResultTrustRoot = 1
+_kSecTrustSettingsResultTrustAsRoot = 2
+_kSecTrustSettingsResultDeny = 3
+_kSecTrustSettingsResultUnspecified = 4
+
+# CFNumberType enum value for kCFNumberSInt32Type
+_kCFNumberSInt32Type = 3
+
 # CoreFoundation function prototypes
+
 _CFDictionaryCreate = _core.CFDictionaryCreate
-_CFDictionaryCreate.argtypes = [c_void_p, POINTER(c_void_p), POINTER(c_void_p), c_uint32, c_void_p, c_void_p]
+_CFDictionaryCreate.argtypes = [c_void_p, POINTER(c_void_p), POINTER(c_void_p), CFIndex, c_void_p, c_void_p]
 _CFDictionaryCreate.restype = CFDictionaryRef
+
+_CFDictionaryGetValue = _core.CFDictionaryGetValue
+_CFDictionaryGetValue.argtypes = [CFDictionaryRef, c_void_p]
+_CFDictionaryGetValue.restype = c_void_p
 
 _CFArrayGetCount = _core.CFArrayGetCount
 _CFArrayGetCount.argtypes = [CFArrayRef]
-_CFArrayGetCount.restype = c_uint32
+_CFArrayGetCount.restype = CFIndex
 
 _CFArrayGetValueAtIndex = _core.CFArrayGetValueAtIndex
-_CFArrayGetValueAtIndex.argtypes = [CFArrayRef, c_uint32]
+_CFArrayGetValueAtIndex.argtypes = [CFArrayRef, CFIndex]
 _CFArrayGetValueAtIndex.restype = CFTypeRef
 
 _CFDataGetLength = _core.CFDataGetLength
 _CFDataGetLength.argtypes = [CFDataRef]
-_CFDataGetLength.restype = c_uint32
+_CFDataGetLength.restype = CFIndex
 
 _CFDataGetBytePtr = _core.CFDataGetBytePtr
 _CFDataGetBytePtr.argtypes = [CFDataRef]
 _CFDataGetBytePtr.restype = ctypes.POINTER(ctypes.c_ubyte)
+
+_CFNumberGetValue = _core.CFNumberGetValue
+_CFNumberGetValue.argtypes = [c_void_p, c_int32, c_void_p]
+_CFNumberGetValue.restype = ctypes.c_bool
 
 _CFRelease = _core.CFRelease
 _CFRelease.argtypes = [c_void_p]
@@ -52,91 +78,168 @@ _SecTrustSettingsCopyCertificates = _sec.SecTrustSettingsCopyCertificates
 _SecTrustSettingsCopyCertificates.argtypes = [c_int32, POINTER(CFArrayRef)]
 _SecTrustSettingsCopyCertificates.restype = OSStatus
 
+_SecTrustSettingsCopyTrustSettings = _sec.SecTrustSettingsCopyTrustSettings
+_SecTrustSettingsCopyTrustSettings.argtypes = [CFTypeRef, c_int32, POINTER(CFArrayRef)]
+_SecTrustSettingsCopyTrustSettings.restype = OSStatus
+
 # CF callbacks & boolean constants
+
 _kCFTypeDictKeyCallBacks = c_void_p.in_dll(_core, "kCFTypeDictionaryKeyCallBacks")
 _kCFTypeDictValueCallBacks = c_void_p.in_dll(_core, "kCFTypeDictionaryValueCallBacks")
 _kCFBooleanTrue = c_void_p.in_dll(_core, "kCFBooleanTrue")
-_kSecBooleanTrue = _kCFBooleanTrue
 
-# SecItem constants
+# SecItem / SecTrustSettings constants
+
 _kSecClass = c_void_p.in_dll(_sec, "kSecClass")
 _kSecClassCertificate = c_void_p.in_dll(_sec, "kSecClassCertificate")
 _kSecMatchLimit = c_void_p.in_dll(_sec, "kSecMatchLimit")
 _kSecMatchLimitAll = c_void_p.in_dll(_sec, "kSecMatchLimitAll")
 _kSecMatchTrustedOnly = c_void_p.in_dll(_sec, "kSecMatchTrustedOnly")
 _kSecReturnRef = c_void_p.in_dll(_sec, "kSecReturnRef")
+_kSecTrustSettingsResult = c_void_p.in_dll(_sec, "kSecTrustSettingsResult")
 
 
-# Helper: build a CFDictionary for SecItem queries
 def _make_query(keys: list[c_void_p], values: list[c_void_p]) -> CFDictionaryRef:
+    """Build a CFDictionary for SecItem queries."""
     count = len(keys)
-    KeyArr = (c_void_p * count)(*keys)
-    ValArr = (c_void_p * count)(*values)
+    key_arr = (c_void_p * count)(*keys)
+    val_arr = (c_void_p * count)(*values)
     return _CFDictionaryCreate(  # type: ignore[no-any-return]
         None,
-        KeyArr,
-        ValArr,
+        key_arr,
+        val_arr,
         count,
         _kCFTypeDictKeyCallBacks,
         _kCFTypeDictValueCallBacks,
     )
 
 
-# Helper: perform SecItemCopyMatching and return CFTypeRef list
+def _data_to_bytes(data_ref: c_void_p) -> bytes:
+    """Convert a CFDataRef to Python bytes, releasing the CFDataRef."""
+    try:
+        length = _CFDataGetLength(data_ref)
+        ptr = _CFDataGetBytePtr(data_ref)
+        return bytes(ctypes.string_at(ptr, length))
+    finally:
+        _CFRelease(data_ref)
 
 
-def _query_refs(query: CFDictionaryRef) -> list[CFTypeRef]:
-    result = CFTypeRef()
-    status = _SecItemCopyMatching(query, byref(result))
+def _is_cert_trusted(cert_ref: c_void_p, domain: int) -> bool:
+    """Check whether a certificate's trust settings indicate it should be trusted.
+
+    Calls SecTrustSettingsCopyTrustSettings to retrieve per-certificate trust
+    settings for the given domain, then inspects the kSecTrustSettingsResult
+    value in each trust settings dictionary entry.
+
+    Returns True if the certificate should be included in the trust store.
+    """
+    trust_settings = CFArrayRef()
+    status = _SecTrustSettingsCopyTrustSettings(cert_ref, domain, byref(trust_settings))
 
     if status != 0:
-        raise OSError(f"SecItemCopyMatching failed with status={status}")  # Defensive: OOM?
+        # No explicit trust settings for this cert in this domain.
+        # For the system domain (2), this is expected -- system roots have
+        # implicit trust. For user/admin, it means no override exists.
+        return True
 
-    array_ref = CFArrayRef(result.value)
-    count = _CFArrayGetCount(array_ref)
-    items = [_CFArrayGetValueAtIndex(array_ref, i) for i in range(count)]
-    # Note: No CFRelease() calls to avoid premature deallocation
-    return items
+    try:
+        settings_count = _CFArrayGetCount(trust_settings)
+
+        if settings_count == 0:
+            # An empty trust settings array means "trust for everything"
+            # (unconditional trust). This is the common case for user-added CAs.
+            return True
+
+        for i in range(settings_count):
+            settings_dict = _CFArrayGetValueAtIndex(trust_settings, i)
+            result_ref = _CFDictionaryGetValue(settings_dict, _kSecTrustSettingsResult)
+
+            if result_ref is None:
+                # No kSecTrustSettingsResult key in this entry means
+                # kSecTrustSettingsResultTrustRoot (implicit default).
+                return True
+
+            result_value = c_int32()
+            if _CFNumberGetValue(result_ref, _kCFNumberSInt32Type, byref(result_value)):
+                if result_value.value == _kSecTrustSettingsResultDeny:
+                    return False
+                if result_value.value in (
+                    _kSecTrustSettingsResultTrustRoot,
+                    _kSecTrustSettingsResultTrustAsRoot,
+                ):
+                    return True
+                # kSecTrustSettingsResultUnspecified or unknown: continue
+                # checking next entry.
+
+        # If we exhausted all entries without a definitive trust or deny,
+        # the certificate's trust is unspecified in this domain.
+        # Treat as trusted -- downstream TLS evaluation will still verify the chain.
+        return True
+    finally:
+        _CFRelease(trust_settings)
 
 
-# Convert CFDataRef to Python bytes
-def _data_to_bytes(data_ref: c_void_p) -> bytes:
-    length = _CFDataGetLength(data_ref)
-    ptr = _CFDataGetBytePtr(data_ref)
-    data = bytes(ctypes.string_at(ptr, length))
-    _CFRelease(data_ref)
-    return data
-
-
-# Public: retrieve DER-encoded trusted certificates
 def root_der_certificates() -> list[bytes]:
-    """
-    Returns a list of DER-encoded certificates trusted for TLS server auth,
-    covering system roots, admin, user trust settings, and personal CAs.
+    """Return a list of DER-encoded certificates trusted for TLS server auth,
+    covering system roots, admin/user trust settings, and personal CAs.
+
+    Certificates explicitly denied via trust settings are excluded.
+    Duplicates across domains and queries are removed.
     """
     certificates: list[bytes] = []
+    seen: set[bytes] = set()
 
-    # 1) System/user/admin trust settings
+    # 1) Trust settings enumeration across all three domains:
+    #    0 = kSecTrustSettingsDomainUser
+    #    1 = kSecTrustSettingsDomainAdmin
+    #    2 = kSecTrustSettingsDomainSystem
     for domain in (0, 1, 2):
         cert_array = CFArrayRef()
         status = _SecTrustSettingsCopyCertificates(domain, byref(cert_array))
-        if status == 0:
+        if status != 0:
+            # errSecNoTrustSettings (-25263) is expected for the system domain
+            # and for domains with no overrides. Other errors are also benign
+            # here -- we simply skip the domain.
+            continue
+        try:
             count = _CFArrayGetCount(cert_array)
             for i in range(count):
                 cert_ref = _CFArrayGetValueAtIndex(cert_array, i)
-                certificates.append(_data_to_bytes(_SecCertificateCopyData(cert_ref)))
+                if not _is_cert_trusted(cert_ref, domain):
+                    continue
+                der_data = _data_to_bytes(_SecCertificateCopyData(cert_ref))
+                if der_data not in seen:
+                    seen.add(der_data)
+                    certificates.append(der_data)
+        finally:
+            _CFRelease(cert_array)
 
-    # 2) Personal CA certificates from keychain marked trusted
+    # 2) Personal CA certificates from keychain marked as trusted.
+    #    This catches certificates that may not have explicit trust settings
+    #    but are trusted via keychain policies.
     query = _make_query(
         keys=[_kSecClass, _kSecMatchLimit, _kSecMatchTrustedOnly, _kSecReturnRef],
-        values=[_kSecClassCertificate, _kSecMatchLimitAll, _kSecBooleanTrue, _kSecReturnRef],
+        values=[_kSecClassCertificate, _kSecMatchLimitAll, _kCFBooleanTrue, _kCFBooleanTrue],
     )
 
     try:
-        cert_refs = _query_refs(query)
-        for c in cert_refs:
-            certificates.append(_data_to_bytes(_SecCertificateCopyData(c)))
-    except OSError:  # Defensive: OOM?
+        result = CFTypeRef()
+        status = _SecItemCopyMatching(query, byref(result))
+
+        if status == 0:
+            try:
+                count = _CFArrayGetCount(result)
+                for i in range(count):
+                    cert_ref = _CFArrayGetValueAtIndex(result, i)
+                    der_data = _data_to_bytes(_SecCertificateCopyData(cert_ref))
+                    if der_data not in seen:
+                        seen.add(der_data)
+                        certificates.append(der_data)
+            finally:
+                _CFRelease(result)
+    except OSError:
         pass
+    finally:
+        _CFRelease(query)
 
     return certificates
