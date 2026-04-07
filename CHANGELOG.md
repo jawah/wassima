@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## 2.0.6 (2026-04-07)
 
 ### Fixed
-- MacOS truststore implementation.
+- MacOS truststore implementation. A few tiny memory leaks and missing "trust" inspection when explicitly marked (i.e. CA) as "deny".
 
 ### Changed
 - CCADB embedded bundle is updated to latest version.
