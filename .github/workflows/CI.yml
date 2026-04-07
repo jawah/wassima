@@ -36,16 +36,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-24.04, macos-14, macos-15, windows-latest ]
+        os: [ubuntu-22.04, ubuntu-24.04, macos-14, macos-15, macos-26, windows-latest ]
         python_version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10', 'pypy-3.11', '3.14']
         exclude:
           - os: macos-14
             python_version: '3.7'
           - os: macos-15
             python_version: '3.7'
+          - os: macos-26
+            python_version: '3.7'
           - os: macos-14
             python_version: 'pypy-3.7'
           - os: macos-15
+            python_version: 'pypy-3.7'
+          - os: macos-26
             python_version: 'pypy-3.7'
           - os: ubuntu-24.04
             python_version: '3.7'
@@ -204,7 +208,9 @@ jobs:
       - name: "Upload dists to GitHub Release"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          REF_NAME: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          gh release upload ${{ github.ref_name }} dist/* --repo ${{ github.repository }}
+          gh release upload "$REF_NAME" dist/* --repo "$REPOSITORY"
       - name: Publish to PyPI
         uses: "pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e" # v1.13.0

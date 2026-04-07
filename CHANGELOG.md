@@ -3,6 +3,14 @@
 All notable changes to wassima will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2.0.6 (2026-04-07)
+
+### Fixed
+- MacOS truststore implementation. A few tiny memory leaks and missing "trust" inspection when explicitly marked (i.e. CA) as "deny".
+
+### Changed
+- CCADB embedded bundle is updated to latest version.
+
 ## 2.0.5 (2026-02-07)
 
 ### Fixed
@@ -43,7 +51,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Integrated CA bundle to fallback on when no "official" trust store can be loaded.
   A single module shipped along with that library is now a derivative work of CCADB work
   licensed under Community Data License Agreement - Permissive - Version 2.0. It is not
-  like copyleft MPL, therefor is compatible with our main MIT license.
+  like copyleft MPL, therefore is compatible with our main MIT license.
 
 ### Changed
 - Top level functions like `generate_ca_bundle` now integrate intermediate CA on Windows and MacOS.
