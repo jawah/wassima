@@ -31,7 +31,14 @@ _kSecTrustSettingsResultUnspecified = 4
 # CFNumberType enum value for kCFNumberSInt32Type
 _kCFNumberSInt32Type = 3
 
+# CFStringEncoding value for kCFStringEncodingUTF8
+_kCFStringEncodingUTF8 = 0x08000100
+
 # CoreFoundation function prototypes
+
+_CFStringCreateWithCString = _core.CFStringCreateWithCString
+_CFStringCreateWithCString.argtypes = [c_void_p, ctypes.c_char_p, ctypes.c_uint32]
+_CFStringCreateWithCString.restype = c_void_p
 
 _CFDictionaryCreate = _core.CFDictionaryCreate
 _CFDictionaryCreate.argtypes = [c_void_p, POINTER(c_void_p), POINTER(c_void_p), CFIndex, c_void_p, c_void_p]
@@ -96,7 +103,10 @@ _kSecMatchLimit = c_void_p.in_dll(_sec, "kSecMatchLimit")
 _kSecMatchLimitAll = c_void_p.in_dll(_sec, "kSecMatchLimitAll")
 _kSecMatchTrustedOnly = c_void_p.in_dll(_sec, "kSecMatchTrustedOnly")
 _kSecReturnRef = c_void_p.in_dll(_sec, "kSecReturnRef")
-_kSecTrustSettingsResult = c_void_p.in_dll(_sec, "kSecTrustSettingsResult")
+
+# kSecTrustSettingsResult is a #define macro in the Security headers
+# (not an exported dylib symbol), so we create the CFString ourselves.
+_kSecTrustSettingsResult = _CFStringCreateWithCString(None, b"kSecTrustSettingsResult", _kCFStringEncodingUTF8)
 
 
 def _make_query(keys: list[c_void_p], values: list[c_void_p]) -> CFDictionaryRef:
@@ -140,7 +150,7 @@ def _is_cert_trusted(cert_ref: c_void_p, domain: int) -> bool:
         # No explicit trust settings for this cert in this domain.
         # For the system domain (2), this is expected -- system roots have
         # implicit trust. For user/admin, it means no override exists.
-        return True
+        return True  # Defensive: Not tested in CI
 
     try:
         settings_count = _CFArrayGetCount(trust_settings)
@@ -157,12 +167,12 @@ def _is_cert_trusted(cert_ref: c_void_p, domain: int) -> bool:
             if result_ref is None:
                 # No kSecTrustSettingsResult key in this entry means
                 # kSecTrustSettingsResultTrustRoot (implicit default).
-                return True
+                return True  # Defensive: Not tested in CI
 
             result_value = c_int32()
             if _CFNumberGetValue(result_ref, _kCFNumberSInt32Type, byref(result_value)):
                 if result_value.value == _kSecTrustSettingsResultDeny:
-                    return False
+                    return False  # Defensive: Not tested in CI
                 if result_value.value in (
                     _kSecTrustSettingsResultTrustRoot,
                     _kSecTrustSettingsResultTrustAsRoot,
@@ -174,7 +184,7 @@ def _is_cert_trusted(cert_ref: c_void_p, domain: int) -> bool:
         # If we exhausted all entries without a definitive trust or deny,
         # the certificate's trust is unspecified in this domain.
         # Treat as trusted -- downstream TLS evaluation will still verify the chain.
-        return True
+        return True  # Defensive: Not tested in CI
     finally:
         _CFRelease(trust_settings)
 
@@ -206,7 +216,7 @@ def root_der_certificates() -> list[bytes]:
             for i in range(count):
                 cert_ref = _CFArrayGetValueAtIndex(cert_array, i)
                 if not _is_cert_trusted(cert_ref, domain):
-                    continue
+                    continue  # Defensive: Not tested in CI
                 der_data = _data_to_bytes(_SecCertificateCopyData(cert_ref))
                 if der_data not in seen:
                     seen.add(der_data)
@@ -237,7 +247,7 @@ def root_der_certificates() -> list[bytes]:
                         certificates.append(der_data)
             finally:
                 _CFRelease(result)
-    except OSError:
+    except OSError:  # Defensive: should never happen under normal conditions(...)
         pass
     finally:
         _CFRelease(query)
