@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ssl
 import time
 from typing import Iterator
 
@@ -242,7 +243,6 @@ def test_windows_backend_dedups_across_stores(monkeypatch) -> None:  # type: ign
     must end up only once in the result list. Runs cross-platform by
     injecting a fake ``ssl.enum_certificates``."""
     import ssl as _ssl
-    import sys
 
     duplicate = b"x509-asn-bytes"
 
@@ -256,12 +256,69 @@ def test_windows_backend_dedups_across_stores(monkeypatch) -> None:  # type: ign
         # A trust set that lacks the SERVER_AUTH OID: must be skipped.
         yield (b"client-only", "x509_asn", ["1.3.6.1.5.5.7.3.2"])
 
-    monkeypatch.setattr(_ssl, "enum_certificates", fake_enum_certificates, raising=False)
-    # The module may already have been imported on a real Windows host; drop
-    # any cached version so our patched ssl is picked up.
-    sys.modules.pop("wassima._os._windows", None)
+    # On non-Windows hosts ``ssl.enum_certificates`` does not exist; provide a
+    # placeholder so that ``from ssl import enum_certificates`` succeeds when
+    # the ``_windows`` submodule is imported below for the first time.
+    if not hasattr(_ssl, "enum_certificates"):
+        monkeypatch.setattr(_ssl, "enum_certificates", lambda store: iter([]), raising=False)
 
+    # Import the Windows backend. On Windows it is likely already loaded as
+    # part of ``wassima`` startup; on other OSes this triggers a fresh import.
     from wassima._os import _windows as win_mod
+
+    # Patch the ``enum_certificates`` name *inside the loaded module*. This is
+    # what ``root_der_certificates`` actually calls (``from ssl import
+    # enum_certificates`` binds the name into the module's namespace), so it
+    # works whether the module was just imported or was already cached at
+    # process startup (which is the case on Windows).
+    monkeypatch.setattr(win_mod, "enum_certificates", fake_enum_certificates)
 
     certs = win_mod.root_der_certificates()
     assert certs == [duplicate]
+
+
+def test_no_deadlock_between_register_ca_and_root_certs(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """Regression test: ``register_ca`` (acquires _USER_APPEND_CA_LOCK then
+    cache lock via ``cache_clear``) must not deadlock with concurrent
+    ``root_der_certificates()`` calls (which used to also acquire
+    _USER_APPEND_CA_LOCK while holding the cache lock during a miss).
+    """
+    import threading
+
+    sample_pem = ssl.DER_cert_to_PEM_cert(fallback_der_certificates()[0])
+
+    def slow_os_certs() -> list[bytes]:
+        # Make the cache-miss compute slow so register_ca has time to enter
+        # its critical section concurrently.
+        time.sleep(0.05)
+        return [b"\xee"]
+
+    monkeypatch.setattr("wassima._root_der_certificates", slow_os_certs)
+    set_cache_ttl(60)
+    root_der_certificates.cache_clear()
+
+    done = threading.Event()
+
+    def reader() -> None:
+        for _ in range(20):
+            root_der_certificates.cache_clear()
+            root_der_certificates()
+
+    def writer() -> None:
+        for _ in range(20):
+            register_ca(sample_pem)
+            wassima._MANUALLY_REGISTERED_CA.clear()
+
+    threads = [threading.Thread(target=reader) for _ in range(4)]
+    threads += [threading.Thread(target=writer) for _ in range(4)]
+    for t in threads:
+        t.start()
+
+    def watchdog() -> None:
+        for t in threads:
+            t.join(timeout=10)
+        done.set()
+
+    threading.Thread(target=watchdog, daemon=True).start()
+
+    assert done.wait(timeout=15), "deadlock detected between register_ca and root_der_certificates"

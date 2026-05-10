@@ -69,7 +69,7 @@ bundle = wassima.generate_ca_bundle()
 # It is not a path but the file content itself.
 ```
 
-*C) Register your own CA in addition to the system's*
+*E) Register your own CA in addition to the system's*
 
 ```python
 import wassima
@@ -81,7 +81,7 @@ bundle = wassima.generate_ca_bundle()
 # It is not a path but the file content itself.
 ```
 
-*D) Use a hybrid trust store (OS + embedded CCADB bundle)*
+*F) Use a hybrid trust store (OS + embedded CCADB bundle)*
 
 ```python
 import wassima

@@ -114,38 +114,39 @@ def root_der_certificates(hybrid_store: bool = False) -> list[bytes]:
     function only re-deduplicates when extra sources (CCADB fallback, hybrid
     bundle, user-registered CAs) are merged on top.
     """
-    with _USER_APPEND_CA_LOCK:
-        certificates = _root_der_certificates()
+    certificates = _root_der_certificates()
 
-        force_hybrid = hybrid_store
+    force_hybrid = hybrid_store
 
-        if IS_LINUX or IS_BSD:
-            from ._os._linux import is_trust_store_stale
+    if IS_LINUX or IS_BSD:
+        from ._os._linux import is_trust_store_stale
 
-            if is_trust_store_stale():
-                force_hybrid = True
+        if is_trust_store_stale():
+            force_hybrid = True
 
-        # Track what's already in the resulting list so that any extension
-        # below (CCADB fallback, hybrid bundle, manually-registered CAs) can
-        # avoid re-adding a DER that is already present.
-        if not certificates:
-            certificates = fallback_der_certificates()
-        elif force_hybrid:
-            seen = set(certificates)
-            certificates = list(certificates)
-            for cert in fallback_der_certificates():
-                if cert not in seen:
-                    seen.add(cert)
-                    certificates.append(cert)
+    # Track what's already in the resulting list so that any extension
+    # below (CCADB fallback, hybrid bundle, manually-registered CAs) can
+    # avoid re-adding a DER that is already present.
+    if not certificates:
+        certificates = fallback_der_certificates()
+    elif force_hybrid:
+        seen = set(certificates)
+        certificates = list(certificates)
+        for cert in fallback_der_certificates():
+            if cert not in seen:
+                seen.add(cert)
+                certificates.append(cert)
 
-        if _MANUALLY_REGISTERED_CA:
-            seen = set(certificates)
-            for cert in _MANUALLY_REGISTERED_CA:
-                if cert not in seen:
-                    seen.add(cert)
-                    certificates.append(cert)
+    manually_registered = tuple(_MANUALLY_REGISTERED_CA)  # snapshot
 
-        return certificates
+    if manually_registered:
+        seen = set(certificates)
+        for cert in manually_registered:
+            if cert not in seen:
+                seen.add(cert)
+                certificates.append(cert)
+
+    return certificates
 
 
 @_ttl_lru_cache
