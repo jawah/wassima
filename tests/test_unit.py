@@ -226,4 +226,3 @@ def test_cache_concurrent_access_collapses_misses(monkeypatch) -> None:  # type:
         t.join()
 
     assert calls["n"] == 1
-
