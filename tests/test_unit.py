@@ -111,6 +111,15 @@ def test_set_cache_ttl_invalid() -> None:
         set_cache_ttl(-1)
 
 
+def test_set_cache_ttl_wrong_type() -> None:
+    with pytest.raises(TypeError):
+        set_cache_ttl(1.5)  # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        set_cache_ttl(True)
+    with pytest.raises(TypeError):
+        set_cache_ttl("60")  # type: ignore[arg-type]
+
+
 def test_set_cache_ttl_zero_disables_cache(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     calls = {"n": 0}
 
@@ -226,3 +235,33 @@ def test_cache_concurrent_access_collapses_misses(monkeypatch) -> None:  # type:
         t.join()
 
     assert calls["n"] == 1
+
+
+def test_windows_backend_dedups_across_stores(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """Same root present in several Windows cert stores (e.g. ROOT and CA)
+    must end up only once in the result list. Runs cross-platform by
+    injecting a fake ``ssl.enum_certificates``."""
+    import ssl as _ssl
+    import sys
+
+    duplicate = b"x509-asn-bytes"
+
+    def fake_enum_certificates(store: str):  # type: ignore[no-untyped-def]
+        # Same cert in every store -> dedup must collapse it.
+        yield (duplicate, "x509_asn", True)
+        # An untrusted entry: must be skipped entirely.
+        yield (b"untrusted", "x509_asn", False)
+        # A non x509_asn entry: must be skipped entirely.
+        yield (b"pkcs7", "pkcs_7_asn", True)
+        # A trust set that lacks the SERVER_AUTH OID: must be skipped.
+        yield (b"client-only", "x509_asn", ["1.3.6.1.5.5.7.3.2"])
+
+    monkeypatch.setattr(_ssl, "enum_certificates", fake_enum_certificates, raising=False)
+    # The module may already have been imported on a real Windows host; drop
+    # any cached version so our patched ssl is picked up.
+    sys.modules.pop("wassima._os._windows", None)
+
+    from wassima._os import _windows as win_mod
+
+    certs = win_mod.root_der_certificates()
+    assert certs == [duplicate]
