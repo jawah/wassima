@@ -1,8 +1,16 @@
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 from ssl import PEM_cert_to_DER_cert
+
+# Threshold for considering a system trust store as stale (3 years, in seconds).
+STALE_TRUST_STORE_THRESHOLD_SECONDS: int = 3 * 365 * 24 * 3600
+
+# Most recent modification time observed across the trust store source files.
+# Updated by `root_der_certificates`. ``None`` means "no usable info collected".
+_LAST_NEWEST_MTIME: float | None = None
 
 # source: http://gagravarr.org/writing/openssl-certs/others.shtml
 BUNDLE_TRUST_STORE_DIRECTORIES: list[str] = [
@@ -41,7 +49,15 @@ BANNED_KEYWORD_NOT_TLS: set[str] = {
 
 
 def root_der_certificates() -> list[bytes]:
+    global _LAST_NEWEST_MTIME
+
     certificates: list[bytes] = []
+    newest_mtime: float = 0.0
+    # Track files we've already processed by their (device, inode) pair so that
+    # symlinks pointing into the same canonical file (very common, e.g.
+    # /etc/ssl/certs/*.pem -> /usr/share/ca-certificates/.../*.crt) and other
+    # cross-directory aliases are read and parsed exactly once.
+    seen_inodes: set[tuple[int, int]] = set()
 
     for directory in BUNDLE_TRUST_STORE_DIRECTORIES:
         if not os.path.exists(directory):
@@ -60,6 +76,22 @@ def root_der_certificates() -> list[bytes]:
 
                 if any(kw in str(filepath).lower() for kw in BANNED_KEYWORD_NOT_TLS):
                     continue
+
+                try:
+                    st = filepath.stat()
+                except OSError:  # Defensive: stat may fail on broken symlinks
+                    continue
+
+                inode_key = (st.st_dev, st.st_ino)
+                # Some very old cases, we may find st_ino reported
+                # as 0.
+                if st.st_ino != 0:
+                    if inode_key in seen_inodes:
+                        continue
+                    seen_inodes.add(inode_key)
+
+                if st.st_mtime > newest_mtime:
+                    newest_mtime = st.st_mtime
 
                 with open(filepath, encoding="utf-8") as f:
                     bundle = f.read()
@@ -92,4 +124,19 @@ def root_der_certificates() -> list[bytes]:
                 # UnicodeDecodeError -> DER ASN.1 encoded
                 continue
 
+    _LAST_NEWEST_MTIME = newest_mtime if newest_mtime > 0 else None
+
     return certificates
+
+
+def is_trust_store_stale(threshold_seconds: int = STALE_TRUST_STORE_THRESHOLD_SECONDS) -> bool:
+    """Return True if the system trust store has not been updated for longer than
+    ``threshold_seconds``.
+
+    The decision relies on the most recent modification time observed during
+    the last call to :func:`root_der_certificates`. If no modification time has
+    been collected yet, returns False.
+    """
+    if _LAST_NEWEST_MTIME is None:
+        return False
+    return (time.time() - _LAST_NEWEST_MTIME) >= threshold_seconds

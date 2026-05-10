@@ -3,6 +3,21 @@
 All notable changes to wassima will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2.1.0 (2026-05-10)
+
+### Added
+- `set_cache_ttl` top level function to set, in seconds, how long the CA bundle will be valid for until re-polling from the OS.
+- Parameter `hybrid_store` boolean to force concatenate your OS CA bundle with the embedded CCADB bundle. E.g. `wassima.generate_ca_bundle(hybrid_store=True)`.
+
+### Fixed
+- Very old Linux with a stale CA bundle will now automatically be extended with the CCADB embedded bundle (no updates for at least 3 years).
+- The cache being too aggressive, never invalidating itself, thus need a proper restart or manual lru_cache invalidation.
+  Now the CA bundle output will expire after 12 hours to let updates propagate correctly from the OS.
+- Ensured no duplicate CA appears in the final list.
+
+### Changed
+- CCADB embedded bundle is updated to latest version.
+
 ## 2.0.6 (2026-04-07)
 
 ### Fixed

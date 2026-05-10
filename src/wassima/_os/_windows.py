@@ -14,7 +14,8 @@ SERVER_AUTH_OID: str = "1.3.6.1.5.5.7.3.1"
 
 
 def root_der_certificates() -> list[bytes]:
-    certificates = []
+    certificates: list[bytes] = []
+    seen: set[bytes] = set()
 
     for system_store in WINDOWS_STORES:
         try:
@@ -30,6 +31,11 @@ def root_der_certificates() -> list[bytes]:
                 if (
                     encoding_type == "x509_asn"  # X.509 ASN.1 data
                 ):
+                    # Same root may live in several stores (ROOT/MY/CA);
+                    # ensure each DER appears at most once.
+                    if cert_bytes in seen:
+                        continue
+                    seen.add(cert_bytes)
                     certificates.append(cert_bytes)
         except PermissionError:  # Defensive: we can't cover that scenario in CI.
             continue
