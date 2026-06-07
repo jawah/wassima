@@ -401,10 +401,20 @@ def test_macos_fork_guard_falls_back_to_ccadb() -> None:
             certs = root_der_certificates()
             # In a forked child the native store is skipped, so the result is
             # exactly the embedded CCADB bundle.
-            ok = certs == embed
+            code = 0 if certs == embed else 1
         except BaseException:
-            os._exit(2)
-        os._exit(0 if ok else 1)
+            code = 2
+        # force coverage to persist current coverage.
+        # fork exit bypass atexit.
+        try:
+            import coverage  # type: ignore[import-not-found]
+
+            cov = coverage.Coverage.current()
+            if cov is not None:
+                cov.save()
+        except Exception:
+            pass
+        os._exit(code)
 
     _, status = os.waitpid(pid, 0)
 
