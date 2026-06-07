@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+import os
 from ctypes import POINTER, byref, c_int32, c_long, c_void_p
 
 # Load frameworks
@@ -12,6 +13,10 @@ _sec = ctypes.CDLL(
     "/System/Library/Frameworks/Security.framework/Security",
     use_errno=True,
 )
+
+# PID of the process that imported (and thus initialized) the CoreFoundation
+# and Security frameworks above. CoreFoundation/Security are NOT fork-safe.
+_INIT_PID = os.getpid()
 
 # Type aliases (CFIndex is a signed long on macOS, 8 bytes on 64-bit)
 CFTypeRef = c_void_p
@@ -196,6 +201,17 @@ def root_der_certificates() -> list[bytes]:
     Certificates explicitly denied via trust settings are excluded.
     Duplicates across domains and queries are removed.
     """
+    # Fork guard: CoreFoundation/Security cannot be used safely in a process
+    # that forked (without exec()) after the frameworks were initialized.
+    # This protection is heuristic, and it's the best I could do with confidence.
+    # Refs:
+    #   - CPython issue #77906 "Python crashes on macOS after fork with no exec":
+    #     https://github.com/python/cpython/issues/77906
+    #   - Apple fork(2) man page, CAVEATS ("...you must exec."):
+    #     https://keith.github.io/xcode-man-pages/fork.2.html
+    if os.getpid() != _INIT_PID:
+        return []
+
     certificates: list[bytes] = []
     seen: set[bytes] = set()
 
