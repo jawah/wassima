@@ -210,7 +210,7 @@ def root_der_certificates() -> list[bytes]:
     #   - Apple fork(2) man page, CAVEATS ("...you must exec."):
     #     https://keith.github.io/xcode-man-pages/fork.2.html
     if os.getpid() != _INIT_PID:
-        return []
+        return []  # Defensive: forked-child path
 
     certificates: list[bytes] = []
     seen: set[bytes] = set()
