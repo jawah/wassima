@@ -210,17 +210,17 @@ def _read_authroot_encoded_ctl() -> bytes | None:
 
     try:
         key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, _AUTHROOT_AUTOUPDATE_KEY)
-    except OSError:
+    except OSError:  # Defensive: registry key unavailable
         return None
 
     try:
         try:
             data, _ = winreg.QueryValueEx(key, _AUTHROOT_CTL_VALUE)
-        except OSError:
+        except OSError:  # Defensive: CTL value unavailable
             return None
         if isinstance(data, (bytes, bytearray)) and data[:1] == b"\x30":  # ASN.1 SEQUENCE tag (0x30)
             return bytes(data)
-        return None
+        return None  # Defensive: value is not a CTL blob
     finally:
         winreg.CloseKey(key)
 
@@ -230,7 +230,7 @@ def _entry_allows_server_auth(entry: _CTL_ENTRY) -> bool:
     count = entry.cAttribute
     attrs = entry.rgAttribute
     if not count or not attrs:
-        return True  # no restriction -> all purposes
+        return True  # Defensive: entry without attributes -> all purposes
 
     for j in range(count):
         attr = attrs[j]
@@ -252,11 +252,11 @@ def _authroot_ctl_thumbprints() -> set[bytes]:
     """SHA-1 thumbprints of the roots the AuthRoot CTL trusts for TLS server authentication."""
     encoded = _read_authroot_encoded_ctl()
     if _CertCreateCTLContext is None or _CertFreeCTLContext is None or not encoded:
-        return set()
+        return set()  # Defensive: crypt32 unavailable or no CTL blob
 
     ctl = _CertCreateCTLContext(_ENCODING_TYPES, encoded, len(encoded))
     if not ctl:
-        return set()
+        return set()  # Defensive: CTL failed to decode
 
     thumbprints: set[bytes] = set()
     try:
@@ -281,7 +281,7 @@ def _os_trusted_subset(candidates: list[bytes]) -> list[bytes]:
         return []
     trusted = _authroot_ctl_thumbprints()
     if not trusted:
-        return []
+        return []  # Defensive: empty OS trust list
     return [der for der in candidates if _sha1(der) in trusted]
 
 
