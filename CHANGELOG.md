@@ -3,6 +3,15 @@
 All notable changes to wassima will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2.1.1 (2026-06-07)
+
+### Fixed
+- Guarded MacOS truststore access in process forks. Apple document as unsafe accessing some CoreFoundation/Security in forks.
+  Previously could lead to a crash (SIGABRT or SIGSEGV). Now automatically falling back to CCADB bundle if in such condition.
+- Windows only materializes trusted roots on demand, so the enumerated OS store could be incomplete and
+  cause `unable to get local issuer certificate` failures. Now extended with the embedded CCADB roots that the Windows AuthRoot
+  CTL trusts for server authentication, even when not yet downloaded locally. (#52)
+
 ## 2.1.0 (2026-05-10)
 
 ### Added

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import ssl
+import sys
 import time
 from typing import Iterator
 
@@ -272,9 +274,66 @@ def test_windows_backend_dedups_across_stores(monkeypatch) -> None:  # type: ign
     # works whether the module was just imported or was already cached at
     # process startup (which is the case on Windows).
     monkeypatch.setattr(win_mod, "enum_certificates", fake_enum_certificates)
+    # Isolate store dedup from the CCADB enrichment step.
+    monkeypatch.setattr(win_mod, "_ccadb_root_certificates", list)
 
     certs = win_mod.root_der_certificates()
     assert certs == [duplicate]
+
+
+def test_windows_root_certs_enriched_with_os_vetted_ccadb(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    import hashlib
+    import ssl as _ssl
+
+    if not hasattr(_ssl, "enum_certificates"):
+        monkeypatch.setattr(_ssl, "enum_certificates", lambda store: iter([]), raising=False)
+
+    from wassima._os import _windows as win_mod
+
+    materialized = b"\xaamaterialized-root"
+
+    def fake_enum(store: str):  # type: ignore[no-untyped-def]
+        yield (materialized, "x509_asn", True)
+
+    monkeypatch.setattr(win_mod, "enum_certificates", fake_enum)
+
+    ccadb_extra = b"\xbbctl-listed-not-materialized"  # in CTL, not in store -> add
+    ccadb_unknown = b"\xccnot-in-ctl"  # absent from CTL -> skip
+    monkeypatch.setattr(
+        win_mod,
+        "_ccadb_root_certificates",
+        lambda: [materialized, ccadb_extra, ccadb_unknown],
+    )
+
+    # The CTL lists the materialized root and the extra (by SHA-1), not the unknown.
+    ctl = {hashlib.sha1(materialized).digest(), hashlib.sha1(ccadb_extra).digest()}
+    monkeypatch.setattr(win_mod, "_authroot_ctl_thumbprints", lambda: ctl)
+
+    certs = win_mod.root_der_certificates()
+
+    # Materialized root (from store) + CTL-listed extra CCADB root; the unknown
+    # candidate is excluded, and the materialized one is not duplicated even
+    # though it is also a CCADB candidate listed in the CTL.
+    assert certs == [materialized, ccadb_extra]
+
+
+def test_windows_os_trusted_subset_matches_by_sha1(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """The AuthRoot CTL keys roots by SHA-1 thumbprint, so the subset filter must
+    match candidates by their SHA-1 digest."""
+    import hashlib
+    import ssl as _ssl
+
+    if not hasattr(_ssl, "enum_certificates"):
+        monkeypatch.setattr(_ssl, "enum_certificates", lambda store: iter([]), raising=False)
+
+    from wassima._os import _windows as win_mod
+
+    listed = b"\x01ctl-listed"
+    not_listed = b"\x02not-in-ctl"
+
+    monkeypatch.setattr(win_mod, "_authroot_ctl_thumbprints", lambda: {hashlib.sha1(listed).digest()})
+
+    assert win_mod._os_trusted_subset([listed, not_listed]) == [listed]
 
 
 def test_no_deadlock_between_register_ca_and_root_certs(monkeypatch) -> None:  # type: ignore[no-untyped-def]
@@ -322,3 +381,34 @@ def test_no_deadlock_between_register_ca_and_root_certs(monkeypatch) -> None:  #
     threading.Thread(target=watchdog, daemon=True).start()
 
     assert done.wait(timeout=15), "deadlock detected between register_ca and root_der_certificates"
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="MacOS only")
+def test_macos_fork_guard_falls_back_to_ccadb() -> None:
+    """On macOS, calling into Security.framework/CoreFoundation from a process
+    that forked without exec() is not fork-safe and crashes.
+    """
+    # Ensure the child recomputes from scratch (i.e. actually hits the backend
+    # guard) instead of reading a value warmed in the parent.
+    root_der_certificates.cache_clear()
+
+    embed = fallback_der_certificates()
+    assert embed, "embedded CCADB bundle should not be empty"
+
+    pid = os.fork()
+    if pid == 0:  # child: must _exit and never raise back into pytest
+        try:
+            certs = root_der_certificates()
+            # In a forked child the native store is skipped, so the result is
+            # exactly the embedded CCADB bundle.
+            ok = certs == embed
+        except BaseException:
+            os._exit(2)
+        os._exit(0 if ok else 1)
+
+    _, status = os.waitpid(pid, 0)
+
+    if os.WIFSIGNALED(status):
+        pytest.fail(f"child crashed with signal {os.WTERMSIG(status)} (fork guard did not prevent the native call)")
+    assert os.WIFEXITED(status)
+    assert os.WEXITSTATUS(status) == 0, "child did not return the embedded CCADB bundle after fork"
