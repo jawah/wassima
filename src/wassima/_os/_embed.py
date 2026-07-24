@@ -3,7 +3,7 @@
 # LICENSED UNDER BOTH MIT AND "Community Data License Agreement - Permissive - Version 2.0" LICENSE
 from __future__ import annotations
 
-import ssl
+from ..utils import PEM_cert_to_DER_cert
 
 CCADB_BUNDLE: str = """
 # Owner: Actalis
@@ -3534,7 +3534,7 @@ def root_der_certificates() -> list[bytes]:
             pem_reconstructed = "".join([chunk[start_marker:], boundary])
 
             try:
-                certificates.append(ssl.PEM_cert_to_DER_cert(pem_reconstructed))
+                certificates.append(PEM_cert_to_DER_cert(pem_reconstructed))
             except ValueError:  # Defensive: malformed base64?
                 continue  # just skip it... don't crash everything.
 
