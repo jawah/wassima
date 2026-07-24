@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 
 PEM_HEADER = "-----BEGIN CERTIFICATE-----"
