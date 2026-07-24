@@ -5,7 +5,6 @@ It aims to provide a pythonic way to retrieve root CAs from your system without 
 
 from __future__ import annotations
 
-import ssl
 import time
 from functools import wraps
 from threading import RLock
@@ -20,8 +19,10 @@ from ._os import (
 )
 from ._os._embed import root_der_certificates as fallback_der_certificates
 from ._version import VERSION, __version__
+from .utils import DER_cert_to_PEM_cert, PEM_cert_to_DER_cert
 
 if TYPE_CHECKING:
+    import ssl
     from typing import Callable, Protocol, TypeVar
 
     from typing_extensions import ParamSpec
@@ -160,7 +161,7 @@ def root_pem_certificates(hybrid_store: bool = False) -> list[str]:
     pem_certs = []
 
     for bin_cert in root_der_certificates(hybrid_store=hybrid_store):
-        pem_certs.append(ssl.DER_cert_to_PEM_cert(bin_cert))
+        pem_certs.append(DER_cert_to_PEM_cert(bin_cert))
 
     return pem_certs
 
@@ -181,7 +182,7 @@ def register_ca(pem_or_der_certificate: bytes | str) -> None:
     """
     with _USER_APPEND_CA_LOCK:
         if isinstance(pem_or_der_certificate, str):
-            pem_or_der_certificate = ssl.PEM_cert_to_DER_cert(pem_or_der_certificate)
+            pem_or_der_certificate = PEM_cert_to_DER_cert(pem_or_der_certificate)
 
         if pem_or_der_certificate not in _MANUALLY_REGISTERED_CA:
             _MANUALLY_REGISTERED_CA.append(pem_or_der_certificate)
@@ -199,6 +200,8 @@ def create_default_ssl_context(hybrid_store: bool = False) -> ssl.SSLContext:
 
     See :func:`root_der_certificates` for the meaning of ``hybrid_store``.
     """
+    import ssl
+
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 
     ctx.load_verify_locations(cadata=generate_ca_bundle(hybrid_store=hybrid_store))
