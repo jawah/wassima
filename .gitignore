@@ -15,6 +15,7 @@ env/
 build/
 develop-eggs/
 dist/
+android-test/wheels/
 eggs/
 lib/
 lib64/
