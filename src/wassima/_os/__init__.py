@@ -6,7 +6,8 @@ import sys
 # Platform detection
 IS_WINDOWS = sys.platform == "win32"
 IS_MACOS = sys.platform == "darwin"
-IS_LINUX = sys.platform.startswith("linux")
+IS_ANDROID = sys.platform == "android" or hasattr(sys, "getandroidapilevel")
+IS_LINUX = sys.platform.startswith("linux") or IS_ANDROID
 IS_BSD = sys.platform.startswith(("freebsd", "openbsd", "netbsd"))
 
 # macOS version detection
