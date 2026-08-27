@@ -5,6 +5,8 @@ import time
 from pathlib import Path
 from ssl import PEM_cert_to_DER_cert
 
+from . import IS_ANDROID
+
 # Threshold for considering a system trust store as stale (3 years, in seconds).
 STALE_TRUST_STORE_THRESHOLD_SECONDS: int = 3 * 365 * 24 * 3600
 
@@ -28,9 +30,11 @@ BUNDLE_TRUST_STORE_DIRECTORIES: list[str] = [
     "/etc/ssl",
     "/etc/certs",
     "/opt/etc/ssl",
-    "/system/etc/security/cacerts",
     "/boot/system/data/ssl",
 ]
+
+ANDROID_LEGACY_TRUST_STORE_DIRECTORY = "/system/etc/security/cacerts"
+ANDROID_CONSCRYPT_TRUST_STORE_DIRECTORY = "/apex/com.android.conscrypt/cacerts"
 
 KNOWN_TRUST_STORE_EXTENSIONS: list[str] = [
     "pem",
@@ -48,6 +52,25 @@ BANNED_KEYWORD_NOT_TLS: set[str] = {
 }
 
 
+def _directory_has_entries(directory: str) -> bool:
+    try:
+        return next(Path(directory).iterdir(), None) is not None
+    except OSError:
+        return False
+
+
+def _bundle_trust_store_directories() -> list[str]:
+    directories = list(BUNDLE_TRUST_STORE_DIRECTORIES)
+
+    if IS_ANDROID:
+        if _directory_has_entries(ANDROID_CONSCRYPT_TRUST_STORE_DIRECTORY):
+            directories.append(ANDROID_CONSCRYPT_TRUST_STORE_DIRECTORY)
+        else:
+            directories.append(ANDROID_LEGACY_TRUST_STORE_DIRECTORY)
+
+    return directories
+
+
 def root_der_certificates() -> list[bytes]:
     global _LAST_NEWEST_MTIME
 
@@ -59,7 +82,7 @@ def root_der_certificates() -> list[bytes]:
     # cross-directory aliases are read and parsed exactly once.
     seen_inodes: set[tuple[int, int]] = set()
 
-    for directory in BUNDLE_TRUST_STORE_DIRECTORIES:
+    for directory in _bundle_trust_store_directories():
         if not os.path.exists(directory):
             continue
 

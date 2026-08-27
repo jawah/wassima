@@ -212,6 +212,53 @@ def test_is_trust_store_stale_helper(monkeypatch) -> None:  # type: ignore[no-un
     assert linux_mod.is_trust_store_stale() is False
 
 
+def test_android_trust_store_directory(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    from wassima._os import _linux as linux_mod
+
+    monkeypatch.setattr(linux_mod, "IS_ANDROID", True)
+    monkeypatch.setattr(linux_mod, "_directory_has_entries", lambda path: True)
+
+    directories = linux_mod._bundle_trust_store_directories()
+
+    assert linux_mod.ANDROID_CONSCRYPT_TRUST_STORE_DIRECTORY in directories
+    assert linux_mod.ANDROID_LEGACY_TRUST_STORE_DIRECTORY not in directories
+
+
+def test_legacy_android_trust_store_directory(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    from wassima._os import _linux as linux_mod
+
+    monkeypatch.setattr(linux_mod, "IS_ANDROID", True)
+    monkeypatch.setattr(linux_mod, "_directory_has_entries", lambda path: False)
+
+    directories = linux_mod._bundle_trust_store_directories()
+
+    assert linux_mod.ANDROID_LEGACY_TRUST_STORE_DIRECTORY in directories
+    assert linux_mod.ANDROID_CONSCRYPT_TRUST_STORE_DIRECTORY not in directories
+
+
+def test_directory_has_entries(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    from wassima._os import _linux as linux_mod
+
+    directory = tmp_path / "cacerts"
+    directory.mkdir()
+    assert linux_mod._directory_has_entries(str(directory)) is False
+
+    (directory / "certificate.0").write_text("certificate")
+    assert linux_mod._directory_has_entries(str(directory)) is True
+    assert linux_mod._directory_has_entries(str(tmp_path / "missing")) is False
+
+
+def test_non_android_does_not_scan_android_trust_stores(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    from wassima._os import _linux as linux_mod
+
+    monkeypatch.setattr(linux_mod, "IS_ANDROID", False)
+
+    directories = linux_mod._bundle_trust_store_directories()
+
+    assert linux_mod.ANDROID_LEGACY_TRUST_STORE_DIRECTORY not in directories
+    assert linux_mod.ANDROID_CONSCRYPT_TRUST_STORE_DIRECTORY not in directories
+
+
 def test_cache_concurrent_access_collapses_misses(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     """Under contention at the TTL boundary, only one thread should recompute
     for a given key (single-lock design, no thundering herd)."""

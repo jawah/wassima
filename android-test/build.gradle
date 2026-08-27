@@ -1,0 +1,53 @@
+plugins {
+    id "com.android.application" version "8.7.3"
+    id "com.chaquo.python" version "17.0.0"
+}
+
+def wheelFiles = fileTree("wheels") {
+    include "wassima-*.whl"
+}
+
+if (wheelFiles.files.size() != 1) {
+    throw new GradleException("Expected exactly one wassima wheel in ${file('wheels')}")
+}
+
+def wassimaWheel = wheelFiles.singleFile
+
+android {
+    namespace "io.github.jawah.wassima.androidtest"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "io.github.jawah.wassima.androidtest"
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName "1"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters "x86_64"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+chaquopy {
+    defaultConfig {
+        version = "3.13"
+        buildPython("python3.13")
+
+        pip {
+            install("wheels/${wassimaWheel.name}")
+        }
+    }
+}
+
+dependencies {
+    androidTestImplementation "androidx.test.ext:junit:1.2.1"
+    androidTestImplementation "androidx.test:runner:1.6.2"
+}
