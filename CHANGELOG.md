@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - CCADB embedded bundle is updated to latest version.
   Compromised eMudhra removed. Your OS truststore always
-  takes precedence over the CCADB bundle, make sure your 
+  takes precedence over the CCADB bundle, make sure your
   OS patches are up-to-date.
 
 ## 2.1.4 (2026-08-27)
