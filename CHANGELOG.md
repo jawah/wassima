@@ -3,6 +3,14 @@
 All notable changes to wassima will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2.1.5 (2026-10-22)
+
+### Changed
+- CCADB embedded bundle is updated to latest version.
+  Compromised eMudhra removed. Your OS truststore always
+  takes precedence over the CCADB bundle, make sure your 
+  OS patches are up-to-date.
+
 ## 2.1.4 (2026-08-27)
 
 ### Fixed
